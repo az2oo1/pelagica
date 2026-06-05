@@ -396,6 +396,7 @@ const UserMenu = () => {
                             {[
                                 { code: 'en', flag: 'us', label: 'English' },
                                 { code: 'de', flag: 'de', label: 'Deutsch' },
+                                { code: 'sv', flag: 'se', label: 'Svenska' },
                                 { code: 'fr', flag: 'fr', label: 'Français' },
                                 { code: 'pt', flag: 'pt', label: 'Português' },
                                 { code: 'ja', flag: 'jp', label: '日本語' },
