@@ -16,7 +16,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useConfig } from '@/hooks/api/useConfig';
-import { getServerUrl } from '@/utils/localstorageCredentials';
+import { getServerUrl, saveServerUrl } from '@/utils/localstorageCredentials';
 import { useServerBranding } from '../../hooks/api/useServerBranding';
 import DOMPurify from 'dompurify';
 
@@ -33,11 +33,12 @@ const Disclaimer = ({ text }: { text: string | null | undefined }) => {
 
 const LoginPage = () => {
     const { config } = useConfig();
-    const { data: branding } = useServerBranding();
+    const [serverUrl, setServerUrl] = useState<string>(() => getServerUrl() || '');
+    const { data: branding } = useServerBranding(serverUrl);
     const navigate = useNavigate();
     const { t } = useTranslation('login');
     const [step, setStep] = useState<'server' | 'login' | 'quickconnect'>(
-        config?.serverAddress ? 'login' : 'server'
+        config?.serverAddress || serverUrl ? 'login' : 'server'
     );
 
     const [checkingServer, setCheckingServer] = useState(false);
@@ -57,22 +58,21 @@ const LoginPage = () => {
     const initiatingQuickConnectRef = useRef(false);
 
     const quickConnectStatus = useQuickConnectStatus(
-        getServerUrl() || '',
+        serverUrl || '',
         quickConnectSecret,
         isPolling
     );
 
-    const [splashScreenUrl, setSplashScreenUrl] = useState<string | null>(getServerUrl);
+    const [splashScreenUrl, setSplashScreenUrl] = useState<string | null>(serverUrl);
 
     useEffect(() => {
-        const serverUrl = getServerUrl();
         if (!serverUrl) {
             setSplashScreenUrl(null);
             return;
         }
         const splashUrl = new URL('/Branding/Splashscreen', serverUrl).toString();
         setSplashScreenUrl(splashUrl);
-    }, [step]);
+    }, [serverUrl, step]);
 
     useEffect(() => {
         if (config?.serverAddress) {
@@ -86,7 +86,8 @@ const LoginPage = () => {
                 );
                 return;
             }
-            localStorage.setItem('jf_server', config.serverAddress);
+            saveServerUrl(config.serverAddress);
+            setServerUrl(config.serverAddress);
             setStep('login');
             setServerCheckError(null);
         }
@@ -95,7 +96,7 @@ const LoginPage = () => {
     const initiateQuickConnect = useCallback(async () => {
         setQuickConnectError(null);
         try {
-            const server = getServerUrl() || '';
+            const server = serverUrl || '';
             const result = await quickConnectInitiate.mutateAsync(server);
 
             if (result.Code && result.Secret) {
@@ -120,7 +121,7 @@ const LoginPage = () => {
         setLoggingIn(true);
 
         try {
-            const server = getServerUrl() || '';
+            const server = serverUrl || '';
             await quickConnectAuthenticate.mutateAsync({ server, secret: quickConnectSecret });
 
             console.log('Quick Connect login successful');
@@ -131,7 +132,14 @@ const LoginPage = () => {
             setQuickConnectApproved(false);
             setLoggingIn(false);
         }
-    }, [quickConnectSecret, quickConnectAuthenticate, navigate, t, quickConnectApproved]);
+    }, [
+        quickConnectSecret,
+        quickConnectApproved,
+        serverUrl,
+        quickConnectAuthenticate,
+        navigate,
+        t,
+    ]);
 
     useEffect(() => {
         if (step === 'quickconnect' && !quickConnectCode && !initiatingQuickConnectRef.current) {
@@ -173,7 +181,8 @@ const LoginPage = () => {
 
         console.log('Found server:', best.address);
 
-        localStorage.setItem('jf_server', best.address);
+        saveServerUrl(best.address);
+        setServerUrl(best.address);
         setStep('login');
         setServerCheckError(null);
         setCheckingServer(false);
@@ -197,9 +206,9 @@ const LoginPage = () => {
 
         try {
             console.log('Attempting login for user:', username);
-            console.log('Using server:', getServerUrl() || '');
+            console.log('Using server:', serverUrl || '');
             await login.mutateAsync({
-                server: getServerUrl() || '',
+                server: serverUrl || '',
                 username,
                 password,
             });
@@ -215,6 +224,14 @@ const LoginPage = () => {
         } finally {
             setLoggingIn(false);
         }
+    };
+
+    const onBackToServer = () => {
+        setStep('server');
+        setLoginError(null);
+        setServerCheckError(null);
+        saveServerUrl('');
+        setServerUrl('');
     };
 
     return (
@@ -339,11 +356,7 @@ const LoginPage = () => {
                             >
                                 {t('quick_connect')}
                             </Button>
-                            <Button
-                                variant="link"
-                                className="w-full mt-2"
-                                onClick={() => setStep('server')}
-                            >
+                            <Button variant="link" className="w-full mt-2" onClick={onBackToServer}>
                                 {t('back_to_server')}
                             </Button>
                         </form>
