@@ -28,6 +28,7 @@ import AllItemsPage from './pages/Items/AllItemsPage.tsx';
 import { Toaster } from './components/ui/sonner.tsx';
 import StatsConsentModal from './components/StatsConsentModal.tsx';
 import { AppPreloader } from './components/AppPreloader.tsx';
+import PhotoViewerPage from './pages/PhotoViewer/PhotoViewerPage.tsx';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -64,6 +65,7 @@ createRoot(document.getElementById('root')!).render(
                                 <Route path="/settings" element={<SettingsPage />} />
                                 <Route path="/browse-themes" element={<ThemeBrowserPage />} />
                                 <Route path="/search" element={<SearchPage />} />
+                                <Route path="/photo/:itemId" element={<PhotoViewerPage />} />
                                 <Route path="*" element={<NotFoundPage />} />
                             </Routes>
                         </AppPreloader>
