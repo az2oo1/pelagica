@@ -37,13 +37,55 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import type { ItemSortBy, SortOrder } from '@jellyfin/sdk/lib/generated-client/models';
+import type { BaseItemDto, BaseItemKind, CollectionType, ItemSortBy, SortOrder } from '@jellyfin/sdk/lib/generated-client/models';
 import { ButtonGroup } from '@/components/ui/button-group';
 import LibraryItem from './LibraryItem';
 import { SUPPORTED_LIBRARY_COLLECTION_TYPES } from '@/utils/supportedLibraryCollectionTypes';
-import { getPrimaryImageUrl } from '@/utils/jellyfinUrls';
+import { getPrimaryImageUrl, type ImageSize } from '@/utils/jellyfinUrls';
 
 const ITEM_ROWS = 5;
+
+const DEFAULT_POSTER_SIZE = { width: 416, height: 640 };
+
+const ITEM_POSTER_SIZES: Partial<Record<CollectionType, ImageSize>> = {
+    music: { width: 416, height: 416 },
+    musicvideos: { width: 700, height: 394 },
+    homevideos: { width: 700, height: 394 },
+};
+
+const DEFAULT_POSTER_ASPECT_RATIO = '2/3';
+
+const ITEM_POSTER_ASPECT_RATIOS: Partial<Record<CollectionType, string>> = {
+    music: 'square',
+    musicvideos: '16/9',
+    homevideos: '16/9',
+};
+
+const DEFAULT_GRID_COLS = "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 2xl:grid-cols-9";
+
+const ITEM_GRID_COLS: Partial<Record<CollectionType, string>> = {
+    musicvideos: "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
+    homevideos: "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
+};
+
+const DIRECT_PLAY_TYPES: CollectionType[] = ['musicvideos', 'homevideos'];
+
+const COLLECTION_ITEM_TYPES: Partial<Record<CollectionType, BaseItemKind[]>> = {
+    movies: ['Movie'],
+    tvshows: ['Series'],
+    boxsets: ['BoxSet'],
+    music: ['MusicAlbum'],
+    musicvideos: ['MusicVideo'],
+    homevideos: ['Video', 'Photo'],
+};
+
+function getDetailLine(item: BaseItemDto): string | undefined {
+    if (item.Type === 'MusicAlbum') {
+        return item.AlbumArtist || undefined;
+    }
+
+    return item.PremiereDate ? new Date(item.PremiereDate).getFullYear().toString() : undefined;
+}
 
 function getColumnCount(width: number): number {
     if (width >= 1536) return 9; // 2xl
@@ -92,7 +134,7 @@ const LibraryContent = ({
         ? itemTypeFilter === 'all'
             ? (['MusicAlbum', 'Audio', 'MusicArtist'] as const)
             : ([itemTypeFilter] as unknown as ('MusicAlbum' | 'Audio' | 'MusicArtist')[])
-        : (['Series', 'Movie', 'BoxSet', 'MusicAlbum'] as const);
+        : (COLLECTION_ITEM_TYPES[collectionType as CollectionType] || ['Series', 'Movie', 'BoxSet', 'MusicAlbum'] as const);
 
     const { data: libraryData, isLoading } = useLibraryItems(libraryId, {
         limit: pageSize,
@@ -131,24 +173,20 @@ const LibraryContent = ({
                 const targetImageTag =
                     item.Type === 'Audio' && item.AlbumId ? undefined : item.ImageTags?.Primary;
 
+                const size =
+                    ITEM_POSTER_SIZES[collectionType as CollectionType] ||
+                    (isSquare ? { width: 416, height: 416 } : { width: 416, height: 640 });
+
                 acc[item.Id!] = getPrimaryImageUrl(
                     targetImageId,
-                    isSquare
-                        ? {
-                              height: 416,
-                              width: 416,
-                          }
-                        : {
-                              height: 640,
-                              width: 416,
-                          },
+                    size,
                     targetImageTag
                 );
                 return acc;
             },
             {} as Record<string, string>
         );
-    }, [libraryData]);
+    }, [libraryData, collectionType]);
 
     const totalPages = libraryData?.totalCount ? Math.ceil(libraryData.totalCount / pageSize) : 0;
 
@@ -158,11 +196,21 @@ const LibraryContent = ({
                 <div
                     tabIndex={0}
                     id="loading-skeleton-container"
-                    className="w-full gap-4 mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 2xl:grid-cols-9 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-md animate-pulse"
+                    className={cn(
+                        "w-full gap-4 mt-2 grid focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-md animate-pulse",
+                        ITEM_GRID_COLS[collectionType as CollectionType] || DEFAULT_GRID_COLS
+                    )}
                 >
                     {Array.from({ length: pageSize }).map((_, i) => (
                         <div key={i} className="p-0 m-0">
-                            <div className="relative w-full aspect-[2/3] overflow-hidden rounded-md">
+                            <div
+                                className={cn(
+                                    "relative w-full overflow-hidden rounded-md",
+                                    (ITEM_POSTER_ASPECT_RATIOS[collectionType as CollectionType] === 'square' && 'aspect-square') ||
+                                    (ITEM_POSTER_ASPECT_RATIOS[collectionType as CollectionType] === '16/9' && 'aspect-[16/9]') ||
+                                    'aspect-[2/3]'
+                                )}
+                            >
                                 <Skeleton className="w-full h-full" />
                             </div>
                             <Skeleton className="mt-2 h-4 w-3/4" />
@@ -184,7 +232,7 @@ const LibraryContent = ({
             )}
             {!isLoading && libraryData && libraryData.items && libraryData.items.length > 0 && (
                 <>
-                    <div className="w-full gap-4 mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 2xl:grid-cols-9">
+                    <div className={`w-full gap-4 mt-2 grid ${ITEM_GRID_COLS[collectionType] || DEFAULT_GRID_COLS}`}>
                         {libraryData.items.map((item) => (
                             <LibraryItem
                                 key={item.Id}
@@ -192,19 +240,19 @@ const LibraryContent = ({
                                 posterUrl={posterUrls[item.Id!]}
                                 t={t}
                                 posterAspectRatio={
-                                    item.Type === 'MusicAlbum' ||
-                                    item.Type === 'Audio' ||
-                                    item.Type === 'MusicArtist'
+                                    (ITEM_POSTER_ASPECT_RATIOS[collectionType as CollectionType] as any) ||
+                                    (item.Type === 'MusicAlbum' || item.Type === 'Audio' || item.Type === 'MusicArtist'
                                         ? 'square'
-                                        : '2/3'
+                                        : '2/3')
                                 }
                                 detailLine={
                                     item.Type === 'MusicAlbum' || item.Type === 'Audio'
-                                        ? item.AlbumArtist || (item.Artists && item.Artists[0])
+                                        ? item.AlbumArtist || (item.Artists && item.Artists[0]) || undefined
                                         : item.PremiereDate
-                                          ? new Date(item.PremiereDate).getFullYear()
+                                          ? new Date(item.PremiereDate).getFullYear().toString()
                                           : undefined
                                 }
+                                isDirectPlay={DIRECT_PLAY_TYPES.includes(collectionType as CollectionType)}
                             />
                         ))}
                     </div>
