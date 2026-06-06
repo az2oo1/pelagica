@@ -40,17 +40,18 @@ import {
 import type { BaseItemDto, BaseItemKind, CollectionType, ItemSortBy, SortOrder } from '@jellyfin/sdk/lib/generated-client/models';
 import { ButtonGroup } from '@/components/ui/button-group';
 import LibraryItem from './LibraryItem';
+import HomeVideoGrid, { TARGET_ROW_HEIGHT } from './HomeVideoGrid';
 import { SUPPORTED_LIBRARY_COLLECTION_TYPES } from '@/utils/supportedLibraryCollectionTypes';
 import { getPrimaryImageUrl, type ImageSize } from '@/utils/jellyfinUrls';
 
 const ITEM_ROWS = 5;
+const HOME_VIDEO_PAGE_SIZE = 50;
 
 const DEFAULT_POSTER_SIZE = { width: 416, height: 640 };
 
 const ITEM_POSTER_SIZES: Partial<Record<CollectionType, ImageSize>> = {
     music: { width: 416, height: 416 },
     musicvideos: { width: 700, height: 394 },
-    homevideos: { width: 700, height: 394 },
 };
 
 const DEFAULT_POSTER_ASPECT_RATIO = '2/3';
@@ -58,7 +59,6 @@ const DEFAULT_POSTER_ASPECT_RATIO = '2/3';
 const ITEM_POSTER_ASPECT_RATIOS: Partial<Record<CollectionType, string>> = {
     music: 'square',
     musicvideos: '16/9',
-    homevideos: '16/9',
 };
 
 const DEFAULT_GRID_COLS = "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 2xl:grid-cols-9";
@@ -68,7 +68,35 @@ const ITEM_GRID_COLS: Partial<Record<CollectionType, string>> = {
     homevideos: "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
 };
 
-const DIRECT_PLAY_TYPES: CollectionType[] = ['musicvideos', 'homevideos'];
+type GridConfig = { cols: string; breakpoints: [number, number][] };
+
+const DEFAULT_GRID_CONFIG: GridConfig = {
+    cols: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 2xl:grid-cols-9',
+    breakpoints: [[1536, 9], [1280, 7], [1024, 5], [768, 4], [640, 3], [0, 2]],
+};
+
+const ITEM_GRID_CONFIG: Partial<Record<CollectionType, GridConfig>> = {
+    musicvideos: {
+        cols: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6',
+        breakpoints: [[1536, 6], [1280, 5], [1024, 4], [768, 3], [0, 2]],
+    },
+};
+
+function getGridConfig(collectionType: CollectionType): GridConfig {
+    return ITEM_GRID_CONFIG[collectionType] ?? DEFAULT_GRID_CONFIG;
+}
+
+function getColumnCount(width: number, collectionType: CollectionType): number {
+    const { breakpoints } = getGridConfig(collectionType);
+    return breakpoints.find(([minWidth]) => width >= minWidth)?.[1] ?? 2;
+}
+
+function getPageSize(width: number, collectionType: CollectionType): number {
+    if (collectionType === 'homevideos') return HOME_VIDEO_PAGE_SIZE;
+    return getColumnCount(width, collectionType) * ITEM_ROWS;
+}
+
+const DIRECT_PLAY_TYPES: CollectionType[] = ['musicvideos'];
 
 const COLLECTION_ITEM_TYPES: Partial<Record<CollectionType, BaseItemKind[]>> = {
     movies: ['Movie'],
@@ -87,14 +115,7 @@ function getDetailLine(item: BaseItemDto): string | undefined {
     return item.PremiereDate ? new Date(item.PremiereDate).getFullYear().toString() : undefined;
 }
 
-function getColumnCount(width: number): number {
-    if (width >= 1536) return 9; // 2xl
-    if (width >= 1280) return 7; // xl
-    if (width >= 1024) return 5; // lg
-    if (width >= 768) return 4; // md
-    if (width >= 640) return 3; // sm
-    return 2;
-}
+const SKELETON_ASPECT_RATIOS = [1.5, 0.75, 1.78, 1, 1.33, 0.67, 2, 1.2, 1.5, 0.8, 1, 1.78];
 
 const LibraryContent = ({
     libraryId,
@@ -115,19 +136,20 @@ const LibraryContent = ({
 }) => {
     const { t } = useTranslation(['library', 'common']);
     const [pageSize, setPageSize] = useState(
-        () => getColumnCount(typeof window !== 'undefined' ? window.innerWidth : 640) * ITEM_ROWS
+        () => getPageSize(typeof window !== 'undefined' ? window.innerWidth : 640, collectionType as CollectionType)
     );
 
     useEffect(() => {
         const handleResize = () => {
-            const newPageSize = getColumnCount(window.innerWidth) * ITEM_ROWS;
-            setPageSize(newPageSize);
-            onPageChange(0);
+            setPageSize((prev) => {
+                const next = getPageSize(window.innerWidth, collectionType as CollectionType);
+                if (next !== prev) onPageChange(0);
+                return next;
+            });
         };
-
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, [onPageChange]);
+    }, [onPageChange, collectionType]);
 
     const isMusicLibrary = collectionType === 'music';
     const includeItemTypes = isMusicLibrary
@@ -161,7 +183,7 @@ const LibraryContent = ({
     }, [isLoading, wasLoading]);
 
     const posterUrls = useMemo(() => {
-        if (!libraryData) return {};
+        if (!libraryData || collectionType === 'homevideos') return {};
         return libraryData.items.reduce(
             (acc, item) => {
                 const isSquare =
@@ -189,16 +211,20 @@ const LibraryContent = ({
     }, [libraryData, collectionType]);
 
     const totalPages = libraryData?.totalCount ? Math.ceil(libraryData.totalCount / pageSize) : 0;
+    const gridCols = getGridConfig(collectionType as CollectionType).cols;
+    const posterAspectRatio = ITEM_POSTER_ASPECT_RATIOS[collectionType as CollectionType] || DEFAULT_POSTER_ASPECT_RATIO;
+    const isDirectPlay = DIRECT_PLAY_TYPES.includes(collectionType as CollectionType);
+    const isHomeVideos = collectionType === 'homevideos';
 
     return (
         <div className="mb-4">
-            {isLoading && (
+            {isLoading && !isHomeVideos && (
                 <div
                     tabIndex={0}
                     id="loading-skeleton-container"
                     className={cn(
                         "w-full gap-4 mt-2 grid focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-md animate-pulse",
-                        ITEM_GRID_COLS[collectionType as CollectionType] || DEFAULT_GRID_COLS
+                        gridCols
                     )}
                 >
                     {Array.from({ length: pageSize }).map((_, i) => (
@@ -219,6 +245,17 @@ const LibraryContent = ({
                     ))}
                 </div>
             )}
+            {isLoading && isHomeVideos && (
+                <div className="flex flex-wrap mt-2" style={{ gap: 8 }}>
+                    {SKELETON_ASPECT_RATIOS.map((ar, i) => (
+                        <Skeleton
+                            key={i}
+                            style={{ height: TARGET_ROW_HEIGHT, width: Math.round(TARGET_ROW_HEIGHT * ar) }}
+                            className="rounded-md"
+                        />
+                    ))}
+                </div>
+            )}
             {!isLoading && libraryData && !libraryData.items?.length && (
                 <Empty>
                     <EmptyHeader>
@@ -232,30 +269,34 @@ const LibraryContent = ({
             )}
             {!isLoading && libraryData && libraryData.items && libraryData.items.length > 0 && (
                 <>
-                    <div className={`w-full gap-4 mt-2 grid ${ITEM_GRID_COLS[collectionType] || DEFAULT_GRID_COLS}`}>
-                        {libraryData.items.map((item) => (
-                            <LibraryItem
-                                key={item.Id}
-                                item={item}
-                                posterUrl={posterUrls[item.Id!]}
-                                t={t}
-                                posterAspectRatio={
-                                    (ITEM_POSTER_ASPECT_RATIOS[collectionType as CollectionType] as any) ||
-                                    (item.Type === 'MusicAlbum' || item.Type === 'Audio' || item.Type === 'MusicArtist'
-                                        ? 'square'
-                                        : '2/3')
-                                }
-                                detailLine={
-                                    item.Type === 'MusicAlbum' || item.Type === 'Audio'
-                                        ? item.AlbumArtist || (item.Artists && item.Artists[0]) || undefined
-                                        : item.PremiereDate
-                                          ? new Date(item.PremiereDate).getFullYear().toString()
-                                          : undefined
-                                }
-                                isDirectPlay={DIRECT_PLAY_TYPES.includes(collectionType as CollectionType)}
-                            />
-                        ))}
-                    </div>
+                    {isHomeVideos ? (
+                        <HomeVideoGrid items={libraryData.items} />
+                    ) : (
+                        <div className={cn("w-full gap-4 mt-2 grid", gridCols)}>
+                            {libraryData.items.map((item) => (
+                                <LibraryItem
+                                    key={item.Id}
+                                    item={item}
+                                    posterUrl={posterUrls[item.Id!]}
+                                    t={t}
+                                    posterAspectRatio={
+                                        (ITEM_POSTER_ASPECT_RATIOS[collectionType as CollectionType] as any) ||
+                                        (item.Type === 'MusicAlbum' || item.Type === 'Audio' || item.Type === 'MusicArtist'
+                                            ? 'square'
+                                            : '2/3')
+                                    }
+                                    detailLine={
+                                        item.Type === 'MusicAlbum' || item.Type === 'Audio'
+                                            ? item.AlbumArtist || (item.Artists && item.Artists[0]) || undefined
+                                            : item.PremiereDate
+                                              ? new Date(item.PremiereDate).getFullYear().toString()
+                                              : undefined
+                                    }
+                                    isDirectPlay={isDirectPlay}
+                                />
+                            ))}
+                        </div>
+                    )}
                     <ItemPagination
                         totalPages={totalPages}
                         currentPage={page}
