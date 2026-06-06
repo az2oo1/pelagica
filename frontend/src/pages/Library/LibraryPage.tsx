@@ -412,7 +412,7 @@ const LibraryPage = () => {
                 activationMode="manual"
             >
                 <div className="flex flex-col sm:items-center sm:justify-between sm:flex-row gap-2">
-                    <TabsList className="max-w-full overflow-auto">
+                    <TabsList className="max-w-full overflow-auto hidden sm:flex">
                         {libraryItems.map((library) => (
                             <TabsTrigger key={library.Id} value={library.Id ?? ''}>
                                 <JellyfinLibraryIcon libraryType={library.CollectionType} />
@@ -420,6 +420,22 @@ const LibraryPage = () => {
                             </TabsTrigger>
                         ))}
                     </TabsList>
+                    <Select
+                        onValueChange={handleLibraryChange}
+                        value={activeLibraryId}
+                    >
+                        <SelectTrigger size="sm" className="w-full sm:hidden">
+                            <SelectValue placeholder={t('select_library', { defaultValue: 'Select Library' })} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {libraryItems.map((library) => (
+                                <SelectItem key={library.Id} value={library.Id ?? ''}>
+                                    <JellyfinLibraryIcon libraryType={library.CollectionType} />
+                                    {library.Name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <ButtonGroup>
                         {isMusicLibrary && (
                             <Select
