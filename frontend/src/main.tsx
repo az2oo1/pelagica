@@ -29,6 +29,7 @@ import { Toaster } from './components/ui/sonner.tsx';
 import StatsConsentModal from './components/StatsConsentModal.tsx';
 import { AppPreloader } from './components/AppPreloader.tsx';
 import PhotoViewerPage from './pages/PhotoViewer/PhotoViewerPage.tsx';
+import { ScrollToTop } from './components/ScrollToTop.tsx';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -45,6 +46,7 @@ createRoot(document.getElementById('root')!).render(
             <MusicPlaybackProvider>
                 <SearchProvider>
                     <BrowserRouter>
+                        <ScrollToTop />
                         <KeyboardShortcuts />
                         <SpatialNavigation />
                         <SearchCommand />
