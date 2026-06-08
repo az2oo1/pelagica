@@ -162,7 +162,7 @@ const HomePage = () => {
                                                             {view.Id && view.Name && (
                                                                 <ItemsRow
                                                                     title={title}
-                                                                    allLink={`/items?title=${encodeURIComponent(title)}&config=${encodeURIComponent(JSON.stringify(itemsConfig))}`}
+                                                                    allLink={`/library?library=${view.Id}&page=0&sortBy=DateCreated&sortOrder=Descending`}
                                                                     items={itemsConfig as any}
                                                                     detailFields={getDetailFieldsForCollectionType(
                                                                         view.CollectionType
