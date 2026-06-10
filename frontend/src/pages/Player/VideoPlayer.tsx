@@ -14,6 +14,7 @@ export interface SubtitleTrack {
 
 interface VideoPlayerProps {
     src: string;
+    srcType?: string;
     poster?: string;
     startTicks: number;
     subtitles?: SubtitleTrack[];
@@ -61,6 +62,7 @@ const adjustTrackCues = (track: any, delay: number) => {
 
 const VideoPlayer = ({
     src,
+    srcType = 'application/x-mpegURL',
     poster,
     startTicks,
     subtitles,
@@ -79,6 +81,15 @@ const VideoPlayer = ({
         setPrevSrc(src);
         setIsBuffering(true);
     }
+
+    console.log('VideoPlayer props:', {
+        src,
+        srcType,
+        poster,
+        startTicks,
+        subtitles,
+        subtitleTrackIndex,
+    });
 
     useEffect(() => {
         if (!videoRef.current) return;
@@ -164,7 +175,7 @@ const VideoPlayer = ({
         }
 
         player.pause();
-        player.src({ src, type: 'application/x-mpegURL' });
+        player.src({ src, type: srcType });
         player.load();
 
         if (seekTo !== null) {
@@ -172,7 +183,7 @@ const VideoPlayer = ({
         }
 
         player.play()?.catch(console.error);
-    }, [src, isAudioSwitchRef]);
+    }, [src, srcType, isAudioSwitchRef]);
 
     useEffect(() => {
         if (!playerRef.current) return;

@@ -1,5 +1,6 @@
 import { getAccessToken, getServerUrl } from './localstorageCredentials';
 import { getSupportedVideoCodecs } from './videoCodecDetection';
+import type { PlayMethod } from '@/hooks/api/usePlaybackInfo';
 
 
 export function getAudioStreamUrl(itemId: string, userId?: string) {
@@ -217,6 +218,95 @@ export function getVideoStreamUrl(
     // &h264-level=52
     // &h264-deinterlace=true
     // &TranscodeReasons=ContainerNotSupported,VideoCodecTagNotSupported
+}
+
+export function getDirectStreamUrl(
+    itemId: string,
+    options: {
+        mediaSourceId?: string;
+        container?: string;
+        audioStreamIndex?: number;
+        playSessionId?: string;
+    }
+) {
+    try {
+        const creds = resolveCredentials();
+        if (!creds) return '';
+
+        const url = new URL(creds.server);
+        const container = options.container || 'mp4';
+        url.pathname = `/Videos/${itemId}/stream.${container}`;
+        url.searchParams.append('Static', 'true');
+        url.searchParams.append('MediaSourceId', options.mediaSourceId || itemId);
+        url.searchParams.append('ApiKey', creds.token);
+
+        if (options.playSessionId !== undefined)
+            url.searchParams.append('PlaySessionId', options.playSessionId);
+        if (options.audioStreamIndex !== undefined)
+            url.searchParams.append('AudioStreamIndex', options.audioStreamIndex.toString());
+
+        return url.toString();
+    } catch {
+        return '';
+    }
+}
+
+export interface PlaybackStreamResult {
+    url: string;
+    mimeType: string;
+}
+
+const BROWSER_PLAYABLE_CONTAINERS: Record<string, string> = {
+    mp4: 'video/mp4',
+    webm: 'video/webm',
+    mov: 'video/mp4',
+};
+
+export function getPlaybackStreamUrl(
+    itemId: string,
+    playMethod: PlayMethod,
+    options: {
+        playSessionId?: string;
+        audioStreamIndex?: number;
+        mediaSourceId?: string;
+        container?: string;
+        transcodingUrl?: string | null;
+    }
+): PlaybackStreamResult {
+    const creds = resolveCredentials();
+    const container = options.container?.toLowerCase();
+    const mimeType = container ? BROWSER_PLAYABLE_CONTAINERS[container] : undefined;
+
+    if ((playMethod === 'DirectPlay' || playMethod === 'DirectStream') && mimeType) {
+        return {
+            url: getDirectStreamUrl(itemId, {
+                mediaSourceId: options.mediaSourceId,
+                container,
+                audioStreamIndex: options.audioStreamIndex,
+                playSessionId: options.playSessionId,
+            }),
+            mimeType,
+        };
+    }
+
+    if (playMethod === 'Transcode' && options.transcodingUrl && creds) {
+        const base = creds.server.replace(/\/+$/, '');
+        const path = options.transcodingUrl.startsWith('/')
+            ? options.transcodingUrl
+            : `/${options.transcodingUrl}`;
+        return {
+            url: `${base}${path}`,
+            mimeType: 'application/x-mpegURL',
+        };
+    }
+
+    return {
+        url: getVideoStreamUrl(itemId, {
+            audioStreamIndex: options.audioStreamIndex,
+            playSessionId: options.playSessionId,
+        }),
+        mimeType: 'application/x-mpegURL',
+    };
 }
 
 export function getSubtitleUrl(
