@@ -96,7 +96,7 @@ const LoginPage = () => {
     const initiateQuickConnect = useCallback(async () => {
         setQuickConnectError(null);
         try {
-            const server = serverUrl || '';
+            const server = getServerUrl() || '';
             const result = await quickConnectInitiate.mutateAsync(server);
 
             if (result.Code && result.Secret) {
@@ -121,7 +121,7 @@ const LoginPage = () => {
         setLoggingIn(true);
 
         try {
-            const server = serverUrl || '';
+            const server = getServerUrl() || '';
             await quickConnectAuthenticate.mutateAsync({ server, secret: quickConnectSecret });
 
             console.log('Quick Connect login successful');
@@ -132,14 +132,7 @@ const LoginPage = () => {
             setQuickConnectApproved(false);
             setLoggingIn(false);
         }
-    }, [
-        quickConnectSecret,
-        quickConnectApproved,
-        serverUrl,
-        quickConnectAuthenticate,
-        navigate,
-        t,
-    ]);
+    }, [quickConnectSecret, quickConnectApproved, quickConnectAuthenticate, navigate, t]);
 
     useEffect(() => {
         if (step === 'quickconnect' && !quickConnectCode && !initiatingQuickConnectRef.current) {
