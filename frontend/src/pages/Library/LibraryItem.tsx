@@ -4,7 +4,8 @@ import type { BaseItemDto } from '@jellyfin/sdk/lib/generated-client/models';
 import type { TFunction } from 'i18next';
 import { ImageOff, Film, Tv, Play } from 'lucide-react';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
+import { buildPlayerUrl } from '@/utils/playerUrl';
 import WatchedStateBadge from '@/components/WatchedStateBadge';
 import { cn } from '@/lib/utils';
 import { useMusicPlayback } from '@/hooks/useMusicPlayback';
@@ -32,6 +33,7 @@ const LibraryItem = ({
     const { config } = useConfig();
     const { loadQueue } = useMusicPlayback();
     const navigate = useNavigate();
+    const location = useLocation();
     const [posterError, setPosterError] = useState(false);
     const [isImageLoaded, setIsImageLoaded] = useState(false);
 
@@ -57,7 +59,8 @@ const LibraryItem = ({
               ? 'aspect-[16/9]'
               : 'aspect-[2/3]';
 
-    const itemPath = itemLink || (isDirectPlay ? `/play/${item.Id}` : `/item/${item.Id}`);
+    const playUrl = buildPlayerUrl(item.Id!, location.pathname + location.search);
+    const itemPath = itemLink || (isDirectPlay ? playUrl : `/item/${item.Id}`);
 
     const watched = item.UserData?.PlaybackPositionTicks ?? 0;
     const runtime = item.RunTimeTicks ?? 0;
@@ -105,7 +108,7 @@ const LibraryItem = ({
                                     role="button"
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        navigate(itemLink || `/play/${item.Id}`);
+                                        navigate(itemLink || playUrl);
                                     }}
                                 >
                                     <Play className="w-6 h-6 text-white fill-white" />

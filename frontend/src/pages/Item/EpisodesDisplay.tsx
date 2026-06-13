@@ -8,8 +8,9 @@ import type { BaseItemDto } from '@jellyfin/sdk/lib/generated-client/models';
 import { ImageOff, Play, Star } from 'lucide-react';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { cn } from '@/lib/utils';
+import { buildPlayerUrl } from '@/utils/playerUrl';
 
 /**
  * Inner image block with blur-in loading state — mirrors the BaseContinueRow card model.
@@ -51,10 +52,12 @@ const EpisodeComponent = memo(
         episode,
         navigate,
         className,
+        backUrl,
     }: {
         episode: BaseItemDto;
         navigate: ReturnType<typeof useNavigate>;
         className?: string;
+        backUrl: string;
     }) => {
         const { t } = useTranslation('item');
         const [imageError, setImageError] = useState(false);
@@ -97,7 +100,7 @@ const EpisodeComponent = memo(
                             role="button"
                             onClick={(e) => {
                                 e.preventDefault();
-                                navigate(`/play/${episode.Id}`);
+                                navigate(buildPlayerUrl(episode.Id!, backUrl));
                             }}
                         >
                             <Play className="w-4 h-4 text-white fill-white translate-x-px" />
@@ -151,6 +154,7 @@ const EpisodesGrid = memo(
         seasonsLoading?: boolean;
     }) => {
         const navigate = useNavigate();
+        const location = useLocation();
         const { data: episodes, isLoading, error } = useEpisodes(seasonId);
 
         if (isLoading || seasonsLoading) {
@@ -178,7 +182,7 @@ const EpisodesGrid = memo(
                 {title}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
                     {episodes?.map((item) => (
-                        <EpisodeComponent key={item.Id} episode={item} navigate={navigate} />
+                        <EpisodeComponent key={item.Id} episode={item} navigate={navigate} backUrl={location.pathname + location.search} />
                     ))}
                 </div>
             </div>
@@ -199,6 +203,7 @@ const EpisodesRow = memo(
         seasonsLoading?: boolean;
     }) => {
         const navigate = useNavigate();
+        const location = useLocation();
         const { data: episodes, isLoading, error } = useEpisodes(seasonId);
 
         if (isLoading || seasonsLoading) {
@@ -231,6 +236,7 @@ const EpisodesRow = memo(
                             key={item.Id}
                             episode={item}
                             navigate={navigate}
+                            backUrl={location.pathname + location.search}
                             className="w-min min-w-48 lg:min-w-64 2xl:min-w-80"
                         />
                     )) || []

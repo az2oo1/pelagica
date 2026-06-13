@@ -16,7 +16,7 @@ import {
     SkipBack,
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import type {
     BaseItemDto,
@@ -35,6 +35,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatPlayTime, ticksToReadableTime, ticksToSeconds, getEndsAt } from '@/utils/timeConversion';
+import { buildPlayerUrl } from '@/utils/playerUrl';
 import { useTranslation } from 'react-i18next';
 import { usePlayerKeyboardControls } from '@/hooks/usePlayerKeyboardControls';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -160,6 +161,8 @@ const PlayerControls = ({
     const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const backUrl = searchParams.get('backUrl');
     const { reportProgress } = useReportPlaybackProgress();
     const [dismissedNextItemPrompt, setDismissedNextItemPrompt] = useState(false);
     const [stats, setStats] = useState<RuntimePlaybackStats | null>(null);
@@ -167,6 +170,14 @@ const PlayerControls = ({
     const [container, setContainer] = useState<HTMLElement | null>(null);
     const { data: session } = useSession(item.Id, showStats);
     const { config } = useConfig();
+
+    const handleBack = () => {
+        if (backUrl) {
+            navigate(backUrl);
+        } else {
+            navigate(-1);
+        }
+    };
 
     useEffect(() => {
         setContainer(containerRef.current);
@@ -301,7 +312,7 @@ const PlayerControls = ({
         const handleEnded = () => {
             if (!nextItem) return;
             markItemAsCompleted(item.Id);
-            navigate(`/play/${nextItem.Id}`);
+            navigate(buildPlayerUrl(nextItem.Id!, backUrl ?? undefined));
         };
 
         // PiP event listeners
@@ -337,7 +348,16 @@ const PlayerControls = ({
                 videoEl.removeEventListener('leavepictureinpicture', handleLeavePiP);
             }
         };
-    }, [player, volume, nextItem, dismissedNextItemPrompt, item.Id, navigate, markItemAsCompleted]);
+    }, [
+        player,
+        volume,
+        nextItem,
+        dismissedNextItemPrompt,
+        item.Id,
+        navigate,
+        markItemAsCompleted,
+        backUrl,
+    ]);
 
     const togglePlay = useCallback(() => {
         if (!player) return;
@@ -504,13 +524,7 @@ const PlayerControls = ({
                 }}
                 onMouseMove={handleMouseMove}
             >
-                <Button variant="ghost" onClick={() => {
-                    if (window.history.state && window.history.state.idx > 0) {
-                        navigate(-1);
-                    } else {
-                        navigate(`/item/${item.Id}`, { replace: true });
-                    }
-                }}>
+                <Button variant="ghost" onClick={handleBack}>
                     <ArrowLeft />
                 </Button>
                 <h1>{title}</h1>
@@ -584,7 +598,9 @@ const PlayerControls = ({
                                         if (!player || !nextItem) return;
                                         player.pause();
                                         markItemAsCompleted(item.Id);
-                                        navigate(`/play/${nextItem.Id}`);
+                                        navigate(
+                                            buildPlayerUrl(nextItem.Id!, backUrl ?? undefined)
+                                        );
                                     }}
                                 >
                                     <SkipForward />
@@ -819,7 +835,7 @@ const PlayerControls = ({
                                 title={t('previousItem')}
                                 asChild
                             >
-                                <Link to={`/play/${previousItem.Id}`}>
+                                <Link to={buildPlayerUrl(previousItem.Id!, backUrl ?? undefined)}>
                                     <SkipBack size={24} />
                                 </Link>
                             </Button>
@@ -840,7 +856,7 @@ const PlayerControls = ({
                                 title={t('nextItem')}
                                 asChild
                             >
-                                <Link to={`/play/${nextItem.Id}`}>
+                                <Link to={buildPlayerUrl(nextItem.Id!, backUrl ?? undefined)}>
                                     <SkipForward size={24} />
                                 </Link>
                             </Button>
