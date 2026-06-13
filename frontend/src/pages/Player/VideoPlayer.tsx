@@ -82,15 +82,6 @@ const VideoPlayer = ({
         setIsBuffering(true);
     }
 
-    console.log('VideoPlayer props:', {
-        src,
-        srcType,
-        poster,
-        startTicks,
-        subtitles,
-        subtitleTrackIndex,
-    });
-
     useEffect(() => {
         if (!videoRef.current) return;
 
