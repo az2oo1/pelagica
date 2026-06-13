@@ -141,7 +141,11 @@ const MediaBar = ({
                                         <div className="flex flex-col items-start gap-4 max-w-2xl px-6 sm:px-12 py-6 relative z-10">
                                             {getLogoUrl(item.Id!) && !logoErrors.has(item.Id!) ? (
                                                 <img
-                                                    src={getLogoUrl(item.Id!)}
+                                                    src={getLogoUrl(
+                                                        item.Id!,
+                                                        { height: 400 },
+                                                        item.ImageTags?.Logo
+                                                    )}
                                                     alt={item.Name || 'Item Logo'}
                                                     className={`${logoSize} h-full object-contain`}
                                                     onError={() => handleLogoError(item.Id!)}
