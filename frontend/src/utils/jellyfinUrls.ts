@@ -1,7 +1,124 @@
 import { getAccessToken, getServerUrl } from './localstorageCredentials';
 import { getSupportedVideoCodecs } from './videoCodecDetection';
 import type { PlayMethod } from '@/hooks/api/usePlaybackInfo';
+interface Credentials {
+    server: string;
+    token: string;
+}
 
+function resolveCredentials(): Credentials | null {
+    const server = getServerUrl();
+    const token = getAccessToken();
+    return server && token ? { server, token } : null;
+}
+
+export interface ImageSize {
+    width?: number;
+    height?: number;
+    maxWidth?: number;
+    maxHeight?: number;
+}
+
+export interface ItemImageOptions {
+    index?: number;
+    size?: ImageSize;
+    quality?: number;
+    tag?: string;
+    fallback?: string;
+}
+
+function buildItemImageUrl(
+    itemId: string,
+    imageType: string,
+    { index, size, tag, quality, fallback = '' }: ItemImageOptions = {}
+): string {
+    try {
+        const creds = resolveCredentials();
+        if (!creds) return fallback;
+
+        const url = new URL(creds.server);
+        url.pathname =
+            index !== undefined
+                ? `/Items/${itemId}/Images/${imageType}/${index}`
+                : `/Items/${itemId}/Images/${imageType}`;
+
+        url.searchParams.append('tag', 'v1');
+        url.searchParams.append('quality', quality?.toString() || '90');
+        if (tag) url.searchParams.set('tag', tag);
+        if (size?.width) url.searchParams.append('width', size.width.toString());
+        if (size?.height) url.searchParams.append('height', size.height.toString());
+        if (size?.maxWidth) url.searchParams.append('maxWidth', size.maxWidth.toString());
+        if (size?.maxHeight) url.searchParams.append('maxHeight', size.maxHeight.toString());
+
+        return url.toString();
+    } catch {
+        return fallback;
+    }
+}
+
+export function getBackdropUrl(itemId: string, size?: ImageSize, tag?: string, quality?: number) {
+    return buildItemImageUrl(itemId, 'Backdrop', {
+        index: 0,
+        size,
+        tag,
+        quality,
+        fallback: '/default-backdrop.jpg',
+    });
+}
+
+export function getLogoUrl(itemId: string, size?: ImageSize, tag?: string, quality?: number) {
+    return buildItemImageUrl(itemId, 'Logo', { size, tag, quality });
+}
+
+export function getThumbUrl(itemId: string, size?: ImageSize, tag?: string, quality?: number) {
+    return buildItemImageUrl(itemId, 'Thumb', {
+        size,
+        tag,
+        quality,
+        fallback: '/default-thumb.jpg',
+    });
+}
+
+export function getPrimaryImageUrl(
+    itemId: string,
+    size?: ImageSize,
+    tag?: string,
+    quality?: number
+) {
+    return buildItemImageUrl(itemId, 'Primary', {
+        index: 0,
+        size,
+        tag,
+        quality,
+        fallback: '/default-thumb.jpg',
+    });
+}
+
+export function getItemImageUrl(
+    itemId: string,
+    imageType: string,
+    index: number,
+    size?: ImageSize,
+    tag?: string,
+    quality?: number
+) {
+    return buildItemImageUrl(itemId, imageType, { index, size, tag, quality });
+}
+
+// https://jellyfin.jan.run/Audio/7ef9a3411c0387ab625e63ff19e5c71b/universal
+// ?UserId=cffdf3fcb5724b3d8cbd980d3a72cbb8
+// &DeviceId=TW96aWxsYS81LjAgKE1hY2ludG9zaDsgSW50ZWwgTWFjIE9TIFggMTBfMTVfNykgQXBwbGVXZWJLaXQvNjA1LjEuMTUgKEtIVE1MLCBsaWtlIEdlY2tvKSBWZXJzaW9uLzE4LjUgU2FmYXJpLzYwNS4xLjE1fDE3NTYwMjYzOTY4MTI1
+// &MaxStreamingBitrate=150000000
+// &Container=opus%2Cwebm%7Copus%2Cts%7Cmp3%2Cmp3%2Caac%2Cm4a%7Caac%2Cm4b%7Caac%2Cflac%2Calac%2Cm4a%7Calac%2Cm4b%7Calac%2Cwebma%2Cwebm%7Cwebma%2Cwav%2Cogg%2Cmp4%7Copus
+// &TranscodingContainer=mp4
+// &TranscodingProtocol=hls
+// &AudioCodec=aac
+// &ApiKey=d0b80ecc697e4b7994fb790e65a09667
+// &PlaySessionId=1768386958787
+// &StartTimeTicks=0
+// &EnableRedirection=true
+// &EnableRemoteMedia=false
+// &EnableAudioVbrEncoding=true
 
 export function getAudioStreamUrl(itemId: string, userId?: string) {
     try {
@@ -331,41 +448,6 @@ export function getSubtitleUrl(
     }
 }
 
-export function getPrimaryImageUrl(
-    itemId: string,
-    size?: { width?: number; height?: number; maxWidth?: number; maxHeight?: number },
-    tag?: string
-) {
-    try {
-        const server = getServerUrl();
-        const token = getAccessToken();
-
-        if (!server || !token) return '/default-thumb.jpg';
-
-        const url = new URL(server);
-        url.pathname = `/Items/${itemId}/Images/Primary/0`;
-        url.searchParams.append('tag', 'v1');
-        url.searchParams.append('quality', '90');
-        url.searchParams.append('token', token);
-        if (tag) url.searchParams.set('tag', tag);
-        if (size?.width) {
-            url.searchParams.append('width', size.width.toString());
-        }
-        if (size?.height) {
-            url.searchParams.append('height', size.height.toString());
-        }
-        if (size?.maxWidth) {
-            url.searchParams.append('maxWidth', size.maxWidth.toString());
-        }
-        if (size?.maxHeight) {
-            url.searchParams.append('maxHeight', size.maxHeight.toString());
-        }
-
-        return url.toString();
-    } catch {
-        return '/default-thumb.jpg';
-    }
-}
 
 export function getStudioImageUrl(studioName: string) {
     return `/api/studios/${encodeURIComponent(studioName)}/thumb`;
@@ -400,39 +482,6 @@ export function getUserProfileImageUrl(userId: string): string {
         url.pathname = `/Users/${userId}/Images/Primary`;
         url.searchParams.append('tag', 'v1');
         url.searchParams.append('quality', '90');
-        url.searchParams.append('token', token);
-
-        return url.toString();
-    } catch {
-        return '';
-    }
-}
-
-export function getItemImageUrl(
-    itemId: string,
-    imageType: string,
-    index: number,
-    size?: { width?: number; height?: number },
-    tag?: string
-) {
-    try {
-        const server = getServerUrl();
-        const token = getAccessToken();
-
-        if (!server || !token) return '';
-
-        const url = new URL(server);
-        url.pathname = `/Items/${itemId}/Images/${imageType}/${index}`;
-        url.searchParams.append('tag', 'v1');
-        url.searchParams.append('quality', '90');
-        url.searchParams.append('token', token);
-        if (tag) url.searchParams.set('tag', tag);
-        if (size?.width) {
-            url.searchParams.append('width', size.width.toString());
-        }
-        if (size?.height) {
-            url.searchParams.append('height', size.height.toString());
-        }
 
         return url.toString();
     } catch {
