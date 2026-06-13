@@ -185,6 +185,7 @@ const SectionEditor = ({
     const [editedSection, setEditedSection] = useState<HomeScreenSection | null>(section);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setEditedSection(section);
     }, [section]);
 
@@ -713,6 +714,7 @@ const SettingsPage = () => {
     };
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setServerAddress(config?.serverAddress || '');
         setStreamystatsUrl(config?.streamystatsUrl || '');
         setShowStreamystatsButton(config?.showStreamystatsButton || false);

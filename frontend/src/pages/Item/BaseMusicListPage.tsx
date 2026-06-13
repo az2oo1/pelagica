@@ -60,6 +60,7 @@ const SongDropDown = ({ track, t }: { track: BaseItemDto; t: TFunction }) => {
     const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (presence) setLocalPresence(presence);
     }, [presence]);
 

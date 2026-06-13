@@ -288,6 +288,7 @@ const FindImagePage = ({
     };
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         handleSearch();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
