@@ -12,7 +12,9 @@ import type { CollectionType } from '@jellyfin/sdk/lib/generated-client/models';
 import GenresRow from './GenresRow';
 import LibrariesRow from './LibrariesRow';
 import StudiosRow from './StudiosRow';
+import RecentlyAddedRow from './RecentlyAddedRow';
 import LazyRow from '@/components/LazyRow';
+import { SUPPORTED_LIBRARY_COLLECTION_TYPES } from '@/utils/itemTypes';
 
 function getDetailFieldsForCollectionType(type: CollectionType | undefined): DetailField[] {
     switch (type) {
@@ -121,58 +123,27 @@ const HomePage = () => {
                             );
 
                         case 'recentlyAdded': {
-                            const allowedTypes = (section as any).types !== undefined
-                                ? (section as any).types
-                                : [
-                                    'Movie',
-                                    'Series',
-                                    'MusicAlbum',
-                                ];
-                            const allowedCollectionTypes = allowedTypes.flatMap((t: string) => {
-                                switch (t) {
-                                    case 'Movie': return ['movies'];
-                                    case 'Series': return ['tvshows'];
-                                    case 'MusicAlbum': return ['music'];
-                                    case 'Playlist': return ['playlists'];
-                                    case 'BoxSet': return ['boxsets'];
-                                    default: return [];
-                                }
-                            });
-
                             return (
                                 <div key={index} className="flex flex-col gap-4">
                                     {userViews && userViews.Items ? (
                                         <>
-                                            {userViews.Items.filter((view) => 
-                                                !view.CollectionType || allowedCollectionTypes.includes(view.CollectionType)
-                                            ).map((view) => {
-                                                const title = t('recently_added', {
-                                                                category: view.Name,
-                                                            });
-                                                const itemsConfig = {
-                                                                libraryId: view.Id,
-                                                                sortBy: ['DateCreated'],
-                                                                sortOrder: 'Descending',
-                                                                limit: section.limit || 10,
-                                                                types: allowedTypes,
-                                                            };
-                                                return (
-                                                    <LazyRow key={view.Id} placeholderHeight="320px">
-                                                        <div data-library-id={view.Id}>
-                                                            {view.Id && view.Name && (
-                                                                <ItemsRow
-                                                                    title={title}
-                                                                    allLink={`/library?library=${view.Id}&page=0&sortBy=DateCreated&sortOrder=Descending`}
-                                                                    items={itemsConfig as any}
-                                                                    detailFields={getDetailFieldsForCollectionType(
-                                                                        view.CollectionType
-                                                                    )}
-                                                                />
-                                                            )}
-                                                        </div>
-                                                    </LazyRow>
-                                                );
-                                            })}
+                                            {userViews.Items.filter(
+                                                (view) =>
+                                                    view.CollectionType &&
+                                                    SUPPORTED_LIBRARY_COLLECTION_TYPES.includes(
+                                                        view.CollectionType
+                                                    )
+                                            ).map((view) => (
+                                                <LazyRow key={view.Id} placeholderHeight="320px">
+                                                    <RecentlyAddedRow
+                                                        view={view}
+                                                        section={section}
+                                                        detailFields={getDetailFieldsForCollectionType(
+                                                            view.CollectionType
+                                                        )}
+                                                    />
+                                                </LazyRow>
+                                            ))}
                                         </>
                                     ) : (
                                         <p>Loading user views...</p>

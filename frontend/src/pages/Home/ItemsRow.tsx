@@ -126,7 +126,12 @@ const ItemsRow = ({ title, allLink, items, detailFields }: ItemsRowProps) => {
         if (!recentItems) return {};
         return recentItems.reduce(
             (acc, item) => {
-                acc[item.Id!] = getPrimaryImageUrl(item.Id!, undefined, item.ImageTags?.Primary);
+                const isLandscape =
+                    item.Type === 'MusicVideo' || item.Type === 'Video' || item.Type === 'Photo';
+                const size = isLandscape
+                    ? { maxWidth: 640, maxHeight: 360 }
+                    : { maxWidth: 416, maxHeight: 640 };
+                acc[item.Id!] = getPrimaryImageUrl(item.Id!, size, item.ImageTags?.Primary);
                 return acc;
             },
             {} as Record<string, string>

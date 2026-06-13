@@ -1,16 +1,16 @@
 import type { BaseItemDto } from '@jellyfin/sdk/lib/generated-client/models';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { Skeleton } from './ui/skeleton';
-import { getPrimaryImageUrl } from '@/utils/jellyfinUrls';
+import { getPrimaryImageUrl, getThumbUrl, type ImageSize } from '@/utils/jellyfinUrls';
 import { useConfig } from '@/hooks/api/useConfig';
 import WatchedStateBadge from './WatchedStateBadge';
 import { useState } from 'react';
-import { ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import GenreOverlay from './GenreOverlay';
 import PosterPlayButton from './PosterPlayButton';
 import { useMusicPlayback } from '@/hooks/useMusicPlayback';
 import ItemContextMenu from './ItemContextMenu';
+import { Eye, ImageOff, Play } from 'lucide-react';
 
 interface ScrollableSectionPosterProps {
     item?: BaseItemDto;
@@ -21,6 +21,24 @@ interface ScrollableSectionPosterProps {
     className?: string;
     showGenres?: boolean;
     showPlayButton?: boolean;
+}
+
+const DIRECT_PLAY_ROUTES: Record<string, string> = {
+    MusicVideo: '/play',
+    Video: '/play',
+    Photo: '/photo',
+};
+
+const MUSIC_ROUTES: Record<string, string> = {
+    MusicAlbum: '/music/album',
+    MusicArtist: '/music/artist',
+    Playlist: '/music/playlist',
+};
+
+function getItemLink(type: string | undefined, id: string | undefined): string {
+    if (type && DIRECT_PLAY_ROUTES[type]) return `${DIRECT_PLAY_ROUTES[type]}/${id}`;
+    if (type && MUSIC_ROUTES[type]) return `${MUSIC_ROUTES[type]}/${id}`;
+    return `/item/${id}`;
 }
 
 const ScrollableSectionPoster = ({
@@ -35,27 +53,63 @@ const ScrollableSectionPoster = ({
 }: ScrollableSectionPosterProps) => {
     const { config } = useConfig();
     const { loadQueue } = useMusicPlayback();
+    const navigate = useNavigate();
     const [posterFailed, setPosterFailed] = useState(false);
     const [isImageLoaded, setIsImageLoaded] = useState(false);
 
     const isArtist = item?.Type === 'MusicArtist';
-    const isSquareType =
-        item?.Type === 'Playlist' ||
-        item?.Type === 'MusicAlbum' ||
-        item?.Type === 'Audio' ||
-        isArtist;
-    const posterClasses = isSquareType
-        ? 'w-36 h-36 lg:w-44 lg:h-44 2xl:w-52 2xl:h-52'
-        : 'w-36 h-54 lg:w-44 lg:h-64 2xl:w-52 2xl:h-80';
-    const minPosterClasses = isSquareType
-        ? 'min-w-36 lg:min-w-44 2xl:min-w-52 min-h-36 lg:min-h-44 2xl:min-h-52'
-        : 'min-w-36 lg:min-w-44 2xl:min-w-52 min-h-54 lg:min-h-64 2xl:min-h-80';
-    const skeletonClasses = isSquareType ? 'h-36 lg:h-44 2xl:h-52' : 'h-54 lg:h-64 2xl:h-80';
+    const isSquareType = item?.Type === 'Playlist' || item?.Type === 'MusicAlbum' || item?.Type === 'Audio' || isArtist;
+    const isLandscapeType =
+        item?.Type === 'MusicVideo' || item?.Type === 'Video' || item?.Type === 'Photo';
+    const isDirectPlay = item?.Type !== undefined && item.Type in DIRECT_PLAY_ROUTES;
+
+    const posterClasses = isLandscapeType
+        ? 'w-64 h-36 lg:w-72 lg:h-40 2xl:w-80 2xl:h-45'
+        : isSquareType
+          ? 'w-36 h-36 lg:w-44 lg:h-44 2xl:w-52 2xl:h-52'
+          : 'w-36 h-54 lg:w-44 lg:h-64 2xl:w-52 2xl:h-80';
+    const minPosterClasses = isLandscapeType
+        ? 'min-w-64 lg:min-w-72 2xl:min-w-80 min-h-36 lg:min-h-40 2xl:min-h-45'
+        : isSquareType
+          ? 'min-w-36 lg:min-w-44 2xl:min-w-52 min-h-36 lg:min-h-44 2xl:min-h-52'
+          : 'min-w-36 lg:min-w-44 2xl:min-w-52 min-h-54 lg:min-h-64 2xl:min-h-80';
+    const skeletonClasses = isLandscapeType
+        ? 'h-36 lg:h-40 2xl:h-45'
+        : isSquareType
+          ? 'h-36 lg:h-44 2xl:h-52'
+          : 'h-54 lg:h-64 2xl:h-80';
+    const maxTextWidth = isLandscapeType
+        ? 'max-w-64 lg:max-w-72 2xl:max-w-80'
+        : 'max-w-36 lg:max-w-44 2xl:max-w-52';
+
     const roundedClass = isArtist ? 'rounded-full' : 'rounded-md';
 
     const primaryImageTag = item?.ImageTags?.Primary;
     const targetImageId = item?.Type === 'Audio' && item.AlbumId ? item.AlbumId : (itemId || item?.Id || '');
     const targetImageTag = item?.Type === 'Audio' && item.AlbumId ? undefined : primaryImageTag;
+
+    const posterImageSize: ImageSize = isLandscapeType
+        ? { width: 640, height: 360 }
+        : isSquareType
+          ? { width: 300, height: 300 }
+          : { width: 300, height: 450 };
+
+    const id = itemId || item?.Id;
+    const linkTo = getItemLink(item?.Type, id);
+
+    const watched = item?.UserData?.PlaybackPositionTicks ?? 0;
+    const runtime = item?.RunTimeTicks ?? 0;
+    const progress = isDirectPlay
+        ? item?.UserData?.Played && watched <= 0
+            ? 100
+            : runtime > 0
+              ? (watched / runtime) * 100
+              : 0
+        : 0;
+
+    const PlayIcon = item?.Type === 'Photo' ? Eye : Play;
+    const playIconClass =
+        item?.Type === 'Photo' ? 'w-5 h-5 text-white' : 'w-5 h-5 text-white fill-white';
 
     const handleClick = (e: React.MouseEvent) => {
         if (item?.Type === 'Audio') {
@@ -74,8 +128,8 @@ const ScrollableSectionPoster = ({
 
     const posterContent = posterFailed ? (
         <Link
-            to={`/item/${itemId || item?.Id}`}
-            key={itemId || item?.Id}
+            to={linkTo}
+            key={id}
             className={cn('group block outline-none focus:outline-none focus-visible:outline-none', className)}
             onClick={handleClick}
         >
@@ -94,7 +148,8 @@ const ScrollableSectionPoster = ({
             </div>
             <p
                 className={cn(
-                    'mt-2 text-sm line-clamp-1 text-ellipsis break-all max-w-36 lg:max-w-44 2xl:max-w-52',
+                    'mt-2 text-sm line-clamp-1 text-ellipsis break-all',
+                    maxTextWidth,
                     isArtist && 'text-center w-full'
                 )}
             >
@@ -104,8 +159,8 @@ const ScrollableSectionPoster = ({
         </Link>
     ) : (
         <Link
-            to={`/item/${itemId || item?.Id}`}
-            key={itemId || item?.Id}
+            to={linkTo}
+            key={id}
             className={cn('group block outline-none focus:outline-none focus-visible:outline-none', className)}
             onClick={handleClick}
         >
@@ -117,7 +172,7 @@ const ScrollableSectionPoster = ({
                             ? posterUrl
                             : getPrimaryImageUrl(
                                   targetImageId,
-                                  { width: 400 },
+                                  posterImageSize,
                                   targetImageTag
                               )
                     }
@@ -127,7 +182,6 @@ const ScrollableSectionPoster = ({
                         posterClasses,
                         'object-cover transform-gpu will-change-transform z-10',
                         roundedClass,
-                        // Loading snap: no transition until image is ready, then hover effects are smooth
                         isImageLoaded
                             ? [
                                   'transition-[opacity,transform,scale] duration-[250ms] ease-out',
@@ -135,19 +189,32 @@ const ScrollableSectionPoster = ({
                                   'group-hover:opacity-90 group-hover:scale-105',
                                   'group-focus-within:opacity-90 group-focus-within:scale-105',
                               ].join(' ')
-                            : // While loading: blurred/dim, NO transition (instant snap on load)
-                              'opacity-40 scale-95 blur-sm'
+                            : 'opacity-40 scale-95 blur-sm'
                     )}
                     loading="lazy"
                     onLoad={() => setIsImageLoaded(true)}
                     onError={() => setPosterFailed(true)}
                 />
                 <Skeleton className={`absolute bottom-0 left-0 right-0 ${skeletonClasses} -z-1`} />
+                {isDirectPlay && (
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                        <div
+                            className="bg-black/60 rounded-full p-3 cursor-pointer hover:bg-black/75"
+                            role="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                navigate(linkTo);
+                            }}
+                        >
+                            <PlayIcon className={playIconClass} />
+                        </div>
+                    </div>
+                )}
                 <WatchedStateBadge
                     item={item}
                     show={config?.watchedStateBadgeHomeScreen || false}
                 />
-                
+
                 {config?.showPosterTags !== false && (
                     <div className="absolute top-1.5 left-1.5 flex flex-col items-start gap-1.5 z-30 pointer-events-none drop-shadow-md">
                         {item?.HasSubtitles && (
@@ -175,10 +242,19 @@ const ScrollableSectionPoster = ({
                 {showPlayButton && (
                     <PosterPlayButton item={item} itemId={itemId} />
                 )}
+                {progress > 0 && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700 z-20">
+                        <div
+                            style={{ width: `${progress}%` }}
+                            className="h-full bg-brand transition-[width]"
+                        />
+                    </div>
+                )}
             </div>
             <p
                 className={cn(
-                    'mt-2 text-sm line-clamp-1 text-ellipsis break-all max-w-36 lg:max-w-44 2xl:max-w-52',
+                    'mt-2 text-sm line-clamp-1 text-ellipsis break-all',
+                    maxTextWidth,
                     isArtist && 'text-center w-full'
                 )}
             >
