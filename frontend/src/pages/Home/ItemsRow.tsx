@@ -25,10 +25,10 @@ function getDetailFieldsStringForItem(
     t: TFunction
 ): ReactNode {
     switch (detailField) {
+<<<<<<< HEAD
         case 'ReleaseYear': {
-            const yearStr = item.PremiereDate
-                ? new Date(item.PremiereDate).getFullYear().toString()
-                : t('release_year_unknown');
+            if (!item.PremiereDate) return '';
+            const yearStr = new Date(item.PremiereDate).getFullYear().toString();
             return (
                 <span className="flex items-center gap-1">
                     {item.Type === 'Movie' && <Film className="w-3.5 h-3.5 shrink-0" />}
@@ -38,12 +38,11 @@ function getDetailFieldsStringForItem(
             );
         }
         case 'ReleaseYearAndMonth': {
-            const dateStr = item.PremiereDate
-                ? new Date(item.PremiereDate).toLocaleDateString(undefined, {
-                      year: 'numeric',
-                      month: 'long',
-                  })
-                : t('release_date_unknown');
+            if (!item.PremiereDate) return '';
+            const dateStr = new Date(item.PremiereDate).toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'long',
+            });
             return (
                 <span className="flex items-center gap-1">
                     {item.Type === 'Movie' && <Film className="w-3.5 h-3.5 shrink-0" />}
@@ -53,13 +52,12 @@ function getDetailFieldsStringForItem(
             );
         }
         case 'ReleaseDate': {
-            const dateStr = item.PremiereDate
-                ? new Date(item.PremiereDate).toLocaleDateString(undefined, {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                  })
-                : t('release_date_unknown');
+            if (!item.PremiereDate) return '';
+            const dateStr = new Date(item.PremiereDate).toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+            });
             return (
                 <span className="flex items-center gap-1">
                     {item.Type === 'Movie' && <Film className="w-3.5 h-3.5 shrink-0" />}
