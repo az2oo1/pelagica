@@ -71,7 +71,6 @@ import { Input } from '@/components/ui/input';
 import { useTheme } from '@/components/theme-provider';
 import { getEffectiveTheme } from '@/utils/effectiveTheme';
 import { logout } from '@/api/logout';
-import { getApi } from '@/api/getApi';
 import { getUserProfileImageUrl } from '@/utils/jellyfinUrls';
 import { SUPPORTED_LIBRARY_COLLECTION_TYPES } from '@/utils/supportedLibraryCollectionTypes';
 import JellyfinLibraryIcon from './JellyfinLibraryIcon';
@@ -544,7 +543,7 @@ const UserMenu = () => {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                     onClick={() => {
-                        logout(getApi());
+                        logout();
                         navigate('/login', { replace: true });
                     }}
                 >
