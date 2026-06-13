@@ -42,7 +42,6 @@ function buildItemImageUrl(
                 ? `/Items/${itemId}/Images/${imageType}/${index}`
                 : `/Items/${itemId}/Images/${imageType}`;
 
-        url.searchParams.append('tag', 'v1');
         url.searchParams.append('quality', quality?.toString() || '90');
         if (tag) url.searchParams.set('tag', tag);
         if (size?.width) url.searchParams.append('width', size.width.toString());
@@ -480,7 +479,6 @@ export function getUserProfileImageUrl(userId: string): string {
 
         const url = new URL(server);
         url.pathname = `/Users/${userId}/Images/Primary`;
-        url.searchParams.append('tag', 'v1');
         url.searchParams.append('quality', '90');
 
         return url.toString();
