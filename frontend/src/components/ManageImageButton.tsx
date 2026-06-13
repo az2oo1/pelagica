@@ -17,6 +17,7 @@ import { Skeleton } from './ui/skeleton';
 import { useTranslation } from 'react-i18next';
 import { useUploadItemImage } from '@/hooks/api/images/useUploadItemImage';
 import FileDropInput from './FileDropInput';
+import { getTmdbThumbnailUrl } from '../utils/tmdbThumbnails';
 
 type ManageImagesPage = 'main' | 'upload' | 'find';
 
@@ -339,7 +340,7 @@ const FindImagePage = ({
                                 )}
                                 <CardContent className="p-0 flex flex-col items-center h-full">
                                     <img
-                                        src={image.Url || ''}
+                                        src={getTmdbThumbnailUrl(image.Url || '', selectedImageType)}
                                         alt={`Result ${index}`}
                                         className="object-contain w-full my-auto"
                                     />
