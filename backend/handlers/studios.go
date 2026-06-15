@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -317,7 +317,7 @@ func listStudiosFromJellyfin(jellyfinURL, token string) ([]models.StudioSummary,
 		return studios[i].Count > studios[j].Count
 	})
 
-	log.Printf("studios: aggregated %d unique studios", len(studios))
+	slog.Debug("Studios aggregated", "count", len(studios))
 
 	return studios, nil
 }
@@ -443,7 +443,7 @@ func getThumbsListWithCache() (map[string]struct{}, error) {
 	}
 	thumbsCache.mu.Unlock()
 
-	log.Printf("studios: thumbs list refreshed (%d entries)", len(thumbs))
+	slog.Debug("Studios thumbs list refreshed", "count", len(thumbs))
 
 	return thumbs, nil
 }
@@ -547,7 +547,7 @@ func GetStudios(c fiber.Ctx) error {
 
 	studios, err := getStudiosWithCache(jellyfinURL, token)
 	if err != nil {
-		log.Printf("studios: failed loading studios: %v", err)
+		slog.Error("Failed to load studios", "error", err)
 		return c.Status(fiber.StatusBadGateway).JSON(models.APIError{Error: "Failed to load studios from Jellyfin: " + err.Error()})
 	}
 
@@ -586,7 +586,7 @@ func GetStudios(c fiber.Ctx) error {
 
 	thumbs, err := getThumbsListWithCache()
 	if err != nil {
-		log.Printf("studios: failed loading thumbs list: %v", err)
+		slog.Error("Failed to load thumbs list", "error", err)
 		return c.Status(fiber.StatusBadGateway).JSON(models.APIError{Error: "Failed to load studio thumbnail metadata"})
 	}
 
@@ -659,6 +659,8 @@ func GetStudioThumb(c fiber.Ctx) error {
 					c.Set("Content-Type", studioThumbContentType)
 					c.Set("Cache-Control", studioThumbCacheControl)
 					return c.SendFile(cachePath)
+				} else if !errors.Is(statErr, os.ErrNotExist) {
+					slog.Warn("Thumb cache stat error", "studio", normalized, "error", statErr)
 				}
 				// Cache miss: fetch via singleflight
 				_, err, _ = thumbFetchGroup.Do(normalized, func() (interface{}, error) {
@@ -668,11 +670,15 @@ func GetStudioThumb(c fiber.Ctx) error {
 					return nil, downloadStudioThumb(studioName, cacheDir, cachePath)
 				})
 				if err == nil {
-					log.Printf("studios: cached thumbnail for %q", normalized)
+					slog.Debug("Cached thumbnail", "studio", normalized)
 					c.Set("Content-Type", studioThumbContentType)
 					c.Set("Cache-Control", studioThumbCacheControl)
 					return c.SendFile(cachePath)
+				} else {
+					slog.Error("Thumb fetch failed", "studio", normalized, "error", err)
 				}
+			} else {
+				slog.Error("Thumb cache dir unavailable", "error", err)
 			}
 		}
 	}
