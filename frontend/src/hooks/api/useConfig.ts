@@ -1,7 +1,8 @@
 import type { BaseItemKind, ItemSortBy } from '@jellyfin/sdk/lib/generated-client/models';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { RecommendationTypeFilter } from './useRecommendedItems';
-import { getAccessToken, getServerUrl } from '@/utils/localstorageCredentials';
+import { getServerUrl } from '@/utils/localstorageCredentials';
+import { getAuthorizationHeader } from '@/api/getApi';
 
 interface BaseHomeScreenSection {
     /** Whether the section is enabled. Mostly intended for testing purposes */
@@ -394,7 +395,7 @@ export const useUpdateConfig = () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        Authorization: getAccessToken() || '',
+                        Authorization: getAuthorizationHeader(),
                     },
                     body: JSON.stringify(newConfig),
                 }

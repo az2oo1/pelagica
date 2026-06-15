@@ -27,6 +27,7 @@ tasks:
       COLLECTOR_STATS_CONSENT_FILE: "{{.ROOT_DIR}}/config/stats_consent"
       COLLECTOR_PING_BASE_URL: "http://localhost:4000"
       COLLECTOR_PING_TOKEN: "2f64e07c-e930-463f-b118-556a741fb2aa"
+      ENABLE_AUTH: "true"
     cmds:
       - go run main.go
 

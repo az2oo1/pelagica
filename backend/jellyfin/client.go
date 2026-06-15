@@ -3,6 +3,7 @@ package jellyfin
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -36,12 +37,15 @@ func AuthenticateByToken(c fiber.Ctx) (bool, error) {
 		return false, errors.New("missing Authorization header")
 	}
 
+	fmt.Printf("Authenticating with Jellyfin at %s\n", fullURL.String())
+	fmt.Printf("Using token: %s\n", token)
+
 	req, err := http.NewRequest(http.MethodGet, fullURL.String(), nil)
 	if err != nil {
 		return false, err
 	}
 
-	req.Header.Set("ApiKey", token)
+	req.Header.Set("Authorization", token)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
