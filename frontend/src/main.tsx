@@ -22,7 +22,7 @@ import { MusicPlaybackProvider } from './context/MusicPlaybackProvider.tsx';
 import SettingsPage from './pages/Settings/SettingsPage.tsx';
 import SearchPage from './pages/Search/SearchPage.tsx';
 import PelagicaThemeLoader from './components/PelagicaThemeProvider.tsx';
-import ThemeBrowserPage from './pages/ThemeBroser/ThemeBrowserPage.tsx';
+import ThemeBrowserPage from './pages/ThemeBrowser/ThemeBrowserPage.tsx';
 import AllStudiosPage from './pages/Studios/AllStudiosPage.tsx';
 import AllItemsPage from './pages/Items/AllItemsPage.tsx';
 import { Toaster } from './components/ui/sonner.tsx';
