@@ -17,7 +17,10 @@ const GenreItem = ({
 }) => {
     const [posterError, setPosterError] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
-    const posterUrl = getPrimaryImageUrl(genreWithItem.item?.Id || '');
+    const posterUrl = getPrimaryImageUrl(genreWithItem.item?.Id || '', {
+        maxWidth: 416,
+        maxHeight: 640,
+    });
 
     return (
         <Link
@@ -31,14 +34,14 @@ const GenreItem = ({
                 {!posterError ? (
                     <>
                         <img
-                            src={`${posterUrl}&maxWidth=416&maxHeight=640&quality=85`}
+                            src={posterUrl}
                             alt={genreWithItem.item?.Name || 'No Title'}
                             className={cn(
                                 'absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-out',
                                 isHovered
                                     ? 'scale-108 grayscale-0 opacity-100'
                                     : 'scale-100 grayscale opacity-80'
-                            )}
+                             )}
                             loading="lazy"
                             onError={() => setPosterError(true)}
                         />

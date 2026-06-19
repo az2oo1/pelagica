@@ -46,17 +46,29 @@ export function useSyncedLyrics({
                 return;
             }
 
-            const lineTop =
-                activeLine.getBoundingClientRect().top -
-                container.getBoundingClientRect().top +
-                container.scrollTop;
-            const targetScrollTop =
-                lineTop - container.clientHeight / 2 + activeLine.clientHeight / 2;
-
-            container.scrollTo({
-                top: Math.max(0, targetScrollTop),
-                behavior,
-            });
+            const prevLine = lineRefs.current[activeIndex - 1];
+            if (prevLine) {
+                const prevLineTop =
+                    prevLine.getBoundingClientRect().top -
+                    container.getBoundingClientRect().top +
+                    container.scrollTop;
+                
+                container.scrollTo({
+                    top: Math.max(0, prevLineTop),
+                    behavior,
+                });
+            } else {
+                const activeLineTop =
+                    activeLine.getBoundingClientRect().top -
+                    container.getBoundingClientRect().top +
+                    container.scrollTop;
+                
+                // Position the active line with some space above it so it looks like the second line (approx 70px)
+                container.scrollTo({
+                    top: Math.max(0, activeLineTop - 70),
+                    behavior,
+                });
+            }
         },
         [activeIndex, containerRef]
     );

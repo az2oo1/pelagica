@@ -224,6 +224,27 @@ const LibraryPage = () => {
     const { data: libraries } = useUserViews();
     const [searchParams, setSearchParams] = useSearchParams();
 
+    // Filter libraries to supported collection types first
+    const libraryItems = useMemo(() => {
+        return libraries?.Items?.filter((library) =>
+            SUPPORTED_LIBRARY_COLLECTION_TYPES.includes(library.CollectionType!)
+        ) ?? [];
+    }, [libraries]);
+
+    const firstLibraryId = libraryItems?.[0]?.Id ?? '';
+    const libraryIdFromUrl = searchParams.get('library') || '';
+    const activeLibraryId = useMemo(() => {
+        return libraryIdFromUrl && libraryItems.some((library) => library.Id === libraryIdFromUrl)
+            ? libraryIdFromUrl
+            : firstLibraryId;
+    }, [libraryIdFromUrl, libraryItems, firstLibraryId]);
+
+    const activeLibrary = useMemo(() => {
+        return libraryItems.find((library) => library.Id === activeLibraryId);
+    }, [libraryItems, activeLibraryId]);
+
+    const isMusicLibrary = activeLibrary?.CollectionType === 'music';
+
     const sortByParam = useMemo(() => {
         const urlParam = searchParams.get('sortBy');
         if (urlParam) {
@@ -247,29 +268,10 @@ const LibraryPage = () => {
         return 'Ascending';
     }, [searchParams]);
 
-    const [sortBy, setSortBy] = useState<ItemSortBy>(sortByParam);
-    const [sortOrder, setSortOrder] = useState<SortOrder>(sortOrderParam);
-
-    useEffect(() => {
-        setSortBy(sortByParam);
-    }, [sortByParam]);
-
-    useEffect(() => {
-        setSortOrder(sortOrderParam);
-    }, [sortOrderParam]);
-
-    const pageParam = parseInt(searchParams.get('page') ?? '0', 10);
-    const [page, setPage] = useState<number>(Number.isNaN(pageParam) ? 0 : pageParam);
-
-    const firstLibraryId = libraries?.Items?.[0]?.Id ?? '';
-    const libraryIdFromUrl = searchParams.get('library') || '';
-    const activeLibraryId =
-        libraryIdFromUrl && libraries?.Items?.some((library) => library.Id === libraryIdFromUrl)
-            ? libraryIdFromUrl
-            : firstLibraryId;
-
-    const activeLibrary = libraries?.Items?.find((library) => library.Id === activeLibraryId);
-    const isMusicLibrary = activeLibrary?.CollectionType === 'music';
+    const pageParam = useMemo(() => {
+        const p = parseInt(searchParams.get('page') ?? '0', 10);
+        return Number.isNaN(p) ? 0 : p;
+    }, [searchParams]);
 
     const itemTypeParam = useMemo(() => {
         const urlParam = searchParams.get('itemType');
@@ -280,20 +282,38 @@ const LibraryPage = () => {
         return 'all';
     }, [searchParams, isMusicLibrary]);
 
-    const [itemType, setItemType] = useState<string>(itemTypeParam);
-
+    // Single useEffect to fill missing URL parameters with defaults initially
     useEffect(() => {
-        setItemType(itemTypeParam);
-    }, [itemTypeParam]);
+        if (!activeLibraryId) return;
+
+        const hasLibrary = searchParams.has('library');
+        const hasPage = searchParams.has('page');
+        const hasSortBy = searchParams.has('sortBy');
+        const hasSortOrder = searchParams.has('sortOrder');
+
+        if (!hasLibrary || !hasPage || !hasSortBy || !hasSortOrder) {
+            const nextParams = new URLSearchParams(searchParams);
+            if (!hasLibrary) nextParams.set('library', activeLibraryId);
+            if (!hasPage) nextParams.set('page', String(pageParam));
+            if (!hasSortBy) nextParams.set('sortBy', sortByParam);
+            if (!hasSortOrder) nextParams.set('sortOrder', sortOrderParam);
+
+            if (isMusicLibrary && !searchParams.has('itemType') && itemTypeParam !== 'all') {
+                nextParams.set('itemType', itemTypeParam);
+            }
+
+            setSearchParams(nextParams, { replace: true });
+        }
+    }, [activeLibraryId, searchParams, setSearchParams, pageParam, sortByParam, sortOrderParam, itemTypeParam, isMusicLibrary]);
 
     const handleLibraryChange = (libraryId: string) => {
-        setPage(0);
-        const nextLibrary = libraries?.Items?.find((library) => library.Id === libraryId);
-        const nextIsMusic = nextLibrary?.CollectionType === 'music';
+        const nextLibrary = libraryItems.find((library) => library.Id === libraryId);
+        if (!nextLibrary) return;
+
+        const nextIsMusic = nextLibrary.CollectionType === 'music';
         const savedType = nextIsMusic && typeof window !== 'undefined'
             ? localStorage.getItem('pelagica_library_item_type_filter') || 'all'
             : 'all';
-        setItemType(savedType);
 
         let savedSortBy = typeof window !== 'undefined'
             ? (localStorage.getItem('pelagica_library_sort_by') as ItemSortBy) || 'Name'
@@ -323,9 +343,6 @@ const LibraryPage = () => {
             ? (localStorage.getItem('pelagica_library_sort_order') as SortOrder) || 'Ascending'
             : 'Ascending';
 
-        setSortBy(savedSortBy);
-        setSortOrder(savedSortOrder);
-
         const params: Record<string, string> = {
             library: libraryId,
             page: '0',
@@ -338,23 +355,6 @@ const LibraryPage = () => {
         setSearchParams(params);
     };
 
-    const libraryItems = libraries?.Items?.filter((library) =>
-        SUPPORTED_LIBRARY_COLLECTION_TYPES.includes(library.CollectionType!)
-    );
-
-    useEffect(() => {
-        const params: Record<string, string> = {
-            library: activeLibraryId,
-            page: String(page),
-            sortBy,
-            sortOrder,
-        };
-        if (itemType !== 'all') {
-            params.itemType = itemType;
-        }
-        setSearchParams(params);
-    }, [activeLibraryId, page, sortBy, sortOrder, itemType, setSearchParams]);
-
     return (
         <Page title={t('title')} requiresAuth className="flex-1">
             <Tabs
@@ -365,7 +365,7 @@ const LibraryPage = () => {
             >
                 <div className="flex flex-col sm:items-center sm:justify-between sm:flex-row gap-2">
                     <TabsList className="max-w-full overflow-auto">
-                        {libraryItems?.map((library) => (
+                        {libraryItems.map((library) => (
                             <TabsTrigger key={library.Id} value={library.Id ?? ''}>
                                 <JellyfinLibraryIcon libraryType={library.CollectionType} />
                                 {library.Name}
@@ -376,11 +376,17 @@ const LibraryPage = () => {
                         {isMusicLibrary && (
                             <Select
                                 onValueChange={(value) => {
-                                    setItemType(value);
-                                    setPage(0);
                                     localStorage.setItem('pelagica_library_item_type_filter', value);
+                                    const params = new URLSearchParams(searchParams);
+                                    params.set('page', '0');
+                                    if (value === 'all') {
+                                        params.delete('itemType');
+                                    } else {
+                                        params.set('itemType', value);
+                                    }
+                                    setSearchParams(params);
                                 }}
-                                value={itemType}
+                                value={itemTypeParam}
                             >
                                 <SelectTrigger size="sm" onKeyDown={(e) => {
                                     if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -408,11 +414,13 @@ const LibraryPage = () => {
                         <Select
                             onValueChange={(value) => {
                                 const nextSortBy = value as ItemSortBy;
-                                setSortBy(nextSortBy);
-                                setPage(0);
                                 localStorage.setItem('pelagica_library_sort_by', nextSortBy);
+                                const params = new URLSearchParams(searchParams);
+                                params.set('sortBy', nextSortBy);
+                                params.set('page', '0');
+                                setSearchParams(params);
                             }}
-                            value={sortBy}
+                            value={sortByParam}
                         >
                             <SelectTrigger size="sm" onKeyDown={(e) => {
                                 if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -487,11 +495,13 @@ const LibraryPage = () => {
                         <Select
                             onValueChange={(value) => {
                                 const nextSortOrder = value as SortOrder;
-                                setSortOrder(nextSortOrder);
-                                setPage(0);
                                 localStorage.setItem('pelagica_library_sort_order', nextSortOrder);
+                                const params = new URLSearchParams(searchParams);
+                                params.set('sortOrder', nextSortOrder);
+                                params.set('page', '0');
+                                setSearchParams(params);
                             }}
-                            value={sortOrder}
+                            value={sortOrderParam}
                         >
                             <SelectTrigger size="sm" onKeyDown={(e) => {
                                 if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -513,20 +523,24 @@ const LibraryPage = () => {
                         </Select>
                     </ButtonGroup>
                 </div>
-                {libraryItems?.map((library) => {
+                {libraryItems.map((library) => {
                     if (!library.Id) return null;
 
                     return (
                         <TabsContent key={library.Id} value={library.Id ?? ''}>
                             <LibraryContent
-                                key={`${library.Id}-${sortBy}-${sortOrder}-${itemType}`}
+                                key={`${library.Id}-${sortByParam}-${sortOrderParam}-${itemTypeParam}`}
                                 libraryId={library.Id}
                                 collectionType={library.CollectionType ?? undefined}
-                                sortBy={sortBy}
-                                sortOrder={sortOrder}
-                                itemTypeFilter={itemType}
-                                page={page}
-                                onPageChange={setPage}
+                                sortBy={sortByParam}
+                                sortOrder={sortOrderParam}
+                                itemTypeFilter={itemTypeParam}
+                                page={pageParam}
+                                onPageChange={(nextPage) => {
+                                    const params = new URLSearchParams(searchParams);
+                                    params.set('page', String(nextPage));
+                                    setSearchParams(params);
+                                }}
                             />
                         </TabsContent>
                     );

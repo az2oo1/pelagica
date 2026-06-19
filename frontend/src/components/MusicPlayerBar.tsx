@@ -1,5 +1,6 @@
 import {
     ChevronDown,
+    ChevronUp,
     Pause,
     Play,
     Repeat2,
@@ -169,7 +170,7 @@ const MusicPlayerBar = () => {
                     <div className={cn(
                         "grid items-center w-full transition-all duration-300",
                         showLyricsInline && lyricsPanelProps
-                            ? "grid-cols-1 md:grid-cols-[380px_1fr] gap-12 md:gap-20 lg:gap-32"
+                            ? "grid-cols-1 md:grid-cols-[320px_1fr] gap-12 md:gap-24 lg:gap-40"
                             : "grid-cols-1 max-w-xl mx-auto gap-12"
                     )}>
                         
@@ -295,7 +296,7 @@ const MusicPlayerBar = () => {
                         {/* Right column: Integrated Apple Music-style lyrics (Not in a box) */}
                         {showLyricsInline && lyricsPanelProps && (
                             <div 
-                                className="w-full h-[55vh] min-h-[300px] md:h-[65vh] overflow-hidden flex flex-col animate-in fade-in slide-in-from-right-4 duration-300 [&_div]:!items-start [&_div.pointer-events-none]:!hidden [&_div.px-4]:!pt-6 [&_div.px-4]:!pb-48 [&_button]:!text-left [&_button]:!max-w-none [&_button]:!px-0 [&_button]:!py-3.5 [&_button]:!text-3xl [&_button]:!font-bold [&_button]:!text-white/30 [&_button]:!bg-transparent [&_button]:!border-none [&_button]:!shadow-none [&_button]:!transform-none [&_button.text-foreground]:!text-white [&_button.text-foreground]:!text-4xl [&_button.text-foreground]:!font-extrabold"
+                                className="w-full h-[55vh] min-h-[300px] md:h-[65vh] overflow-hidden flex flex-col animate-in fade-in slide-in-from-right-4 duration-300 [&_div]:!items-start [&_div.pointer-events-none]:!hidden [&_div.px-4]:!pt-6 [&_div.px-4]:!pb-48 [&_button]:!text-left [&_button]:!max-w-none [&_button]:!px-0 [&_button]:!py-3.5 [&_button]:!bg-transparent [&_button]:!border-none [&_button]:!shadow-none [&_button]:!transform-none"
                                 style={{
                                     maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 85%, transparent 100%)',
                                     WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 85%, transparent 100%)'
@@ -329,8 +330,8 @@ const MusicPlayerBar = () => {
                                 alt="Album cover"
                                 className="rounded-md h-16 w-16 object-cover transition-transform duration-300 group-hover:scale-105"
                             />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
-                                <span className="text-[10px] font-bold text-white uppercase tracking-wider">Expand</span>
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                                <ChevronUp className="h-6 w-6 text-white" />
                             </div>
                         </button>
                         <div className="grid flex-1 text-left leading-tight min-w-0">
@@ -435,10 +436,11 @@ const MusicPlayerBar = () => {
                             isLyricsOpen ? 'max-h-[calc(70vh)]' : 'max-h-0'
                         )}
                     >
-                        <div className="overflow-hidden rounded-t-lg border border-sidebar-border bg-sidebar/90 shadow-sm backdrop-blur-lg">
+                        <div className="overflow-hidden rounded-t-lg border border-sidebar-border bg-sidebar shadow-sm">
                             <LyricsExpandedPanel
                                 {...lyricsPanelProps}
                                 enabled={isLyricsOpen}
+                                isPopover={true}
                                 onClose={() => {
                                     setLyricsOpenTrackId(null);
                                 }}

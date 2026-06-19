@@ -179,30 +179,34 @@ export const SpatialNavigation = () => {
                                   element.closest('.sticky') !== null ||
                                   element.closest('.fixed') !== null;
 
-                if (isControl) {
-                    element.scrollIntoView({
-                        behavior: 'smooth',
-                        block: isHorizontal ? 'nearest' : 'center',
-                        inline: 'nearest',
-                    });
-                } else {
-                    if (isHorizontal) {
-                        const parent = element.parentElement;
-                        if (parent && element === parent.firstElementChild) {
-                            parent.scrollTo({ left: 0, behavior: 'smooth' });
+                const inCarousel = element.closest('[data-slot="carousel"]') !== null;
+
+                if (!inCarousel || !isHorizontal) {
+                    if (isControl) {
+                        element.scrollIntoView({
+                            behavior: 'smooth',
+                            block: isHorizontal ? 'nearest' : 'center',
+                            inline: 'nearest',
+                        });
+                    } else {
+                        if (isHorizontal) {
+                            const parent = element.parentElement;
+                            if (parent && element === parent.firstElementChild) {
+                                parent.scrollTo({ left: 0, behavior: 'smooth' });
+                            } else {
+                                element.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'nearest',
+                                    inline: 'start',
+                                });
+                            }
                         } else {
                             element.scrollIntoView({
                                 behavior: 'smooth',
-                                block: 'nearest',
-                                inline: 'start',
+                                block: 'center',
+                                inline: 'nearest',
                             });
                         }
-                    } else {
-                        element.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center',
-                            inline: 'nearest',
-                        });
                     }
                 }
                 lastMoveTime = now;
@@ -211,9 +215,98 @@ export const SpatialNavigation = () => {
 
         // Attach event listener in the capture phase to intercept keys before component-specific roving handlers
         window.addEventListener('keydown', handleKeyDown, { capture: true });
+
+        // Gamepad polling setup
+        let gamepadRequestRef: number;
+        const buttonStates = new Map<number, boolean>();
+        const axesStates = { x: 0, y: 0 };
+        const AXIS_THRESHOLD = 0.5;
+
+        const pollGamepad = () => {
+            const gamepads = navigator.getGamepads();
+            for (let i = 0; i < gamepads.length; i++) {
+                const gp = gamepads[i];
+                if (!gp) continue;
+
+                gp.buttons.forEach((btn, index) => {
+                    const pressed = btn.pressed;
+                    const prevPressed = buttonStates.get(index) || false;
+
+                    if (pressed && !prevPressed) {
+                        handleGamepadButtonDown(index);
+                    }
+                    buttonStates.set(index, pressed);
+                });
+
+                if (gp.axes.length >= 2) {
+                    const xVal = gp.axes[0];
+                    const yVal = gp.axes[1];
+
+                    if (Math.abs(xVal) > AXIS_THRESHOLD) {
+                        if (axesStates.x === 0) {
+                            dispatchFakeKeyEvent(xVal > 0 ? 'ArrowRight' : 'ArrowLeft');
+                            axesStates.x = Math.sign(xVal);
+                        }
+                    } else {
+                        axesStates.x = 0;
+                    }
+
+                    if (Math.abs(yVal) > AXIS_THRESHOLD) {
+                        if (axesStates.y === 0) {
+                            dispatchFakeKeyEvent(yVal > 0 ? 'ArrowDown' : 'ArrowUp');
+                            axesStates.y = Math.sign(yVal);
+                        }
+                    } else {
+                        axesStates.y = 0;
+                    }
+                }
+            }
+            gamepadRequestRef = requestAnimationFrame(pollGamepad);
+        };
+
+        const dispatchFakeKeyEvent = (key: string) => {
+            const event = new KeyboardEvent('keydown', {
+                key,
+                bubbles: true,
+                cancelable: true,
+            });
+            window.dispatchEvent(event);
+        };
+
+        const handleGamepadButtonDown = (buttonIndex: number) => {
+            switch (buttonIndex) {
+                case 12:
+                    dispatchFakeKeyEvent('ArrowUp');
+                    break;
+                case 13:
+                    dispatchFakeKeyEvent('ArrowDown');
+                    break;
+                case 14:
+                    dispatchFakeKeyEvent('ArrowLeft');
+                    break;
+                case 15:
+                    dispatchFakeKeyEvent('ArrowRight');
+                    break;
+                case 0: {
+                    const activeEl = document.activeElement as HTMLElement;
+                    if (activeEl) {
+                        activeEl.click();
+                    }
+                    break;
+                }
+                case 1: {
+                    window.history.back();
+                    break;
+                }
+            }
+        };
+
+        gamepadRequestRef = requestAnimationFrame(pollGamepad);
+
         return () => {
             clearTimeout(timer);
             window.removeEventListener('keydown', handleKeyDown, { capture: true });
+            cancelAnimationFrame(gamepadRequestRef);
         };
     }, []);
 

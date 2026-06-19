@@ -1,6 +1,12 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from './ui/button';
+import {
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+    type CarouselApi,
+} from './ui/carousel';
 
 interface SectionScrollerProps {
     title?: React.ReactNode;
@@ -18,37 +24,35 @@ export default function SectionScroller({
     additionalButtons,
     contentInset = false,
 }: SectionScrollerProps) {
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const [canScrollLeft, setCanScrollLeft] = useState(false);
-    const [canScrollRight, setCanScrollRight] = useState(true);
-
-    const checkScroll = () => {
-        const el = scrollRef.current;
-        if (!el) return;
-        setCanScrollLeft(el.scrollLeft > 0);
-        setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth);
-    };
-
-    const scroll = (offset: number) => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollBy({ left: offset, behavior: 'smooth' });
-        }
-    };
+    const [api, setApi] = useState<CarouselApi>();
+    const [canScroll, setCanScroll] = useState(false);
 
     useEffect(() => {
-        const el = scrollRef.current;
-        if (!el) return;
+        if (!api) return;
 
-        checkScroll();
+        const updateScrollability = () => {
+            // Embla's scrollSnapList represents the scroll destinations.
+            // If there's more than 1 destination, it means there is content to scroll.
+            setCanScroll(api.scrollSnapList().length > 1);
+        };
 
-        el.addEventListener('scroll', checkScroll);
-        window.addEventListener('resize', checkScroll);
+        updateScrollability();
+        api.on('reInit', updateScrollability);
+        api.on('select', updateScrollability);
 
         return () => {
-            el.removeEventListener('scroll', checkScroll);
-            window.removeEventListener('resize', checkScroll);
+            api.off('reInit', updateScrollability);
+            api.off('select', updateScrollability);
         };
-    }, [items.length]);
+    }, [api, items.length]);
+
+    const scrollPrev = () => {
+        api?.scrollPrev();
+    };
+
+    const scrollNext = () => {
+        api?.scrollNext();
+    };
 
     return (
         <div className={className}>
@@ -62,8 +66,8 @@ export default function SectionScroller({
 
                 <div className="flex gap-2">
                     <Button
-                        onClick={() => scroll(-300)}
-                        disabled={!canScrollLeft}
+                        onClick={scrollPrev}
+                        disabled={!canScroll}
                         size={'icon'}
                         variant={'outline'}
                         tabIndex={-1}
@@ -71,8 +75,8 @@ export default function SectionScroller({
                         <ChevronLeft />
                     </Button>
                     <Button
-                        onClick={() => scroll(300)}
-                        disabled={!canScrollRight}
+                        onClick={scrollNext}
+                        disabled={!canScroll}
                         size={'icon'}
                         variant={'outline'}
                         tabIndex={-1}
@@ -83,15 +87,31 @@ export default function SectionScroller({
                 </div>
             </div>
 
-            <div
-                ref={scrollRef}
-                className={
-                    'flex gap-4 overflow-x-auto scroll-smooth scrollbar-hide custom-scrollbar scrollbar-hide' +
-                    (contentInset ? ` pl-4 sm:pl-12` : '')
-                }
+            <Carousel
+                setApi={setApi}
+                opts={{
+                    align: 'start',
+                    loop: true,
+                }}
+                className={contentInset ? 'px-4 sm:px-12 w-full' : 'w-full'}
             >
-                {items}
-            </div>
+                <CarouselContent
+                    className="gap-4 -ml-0"
+                    onFocusCapture={(e) => {
+                        if (!api) return;
+                        const target = e.target as HTMLElement;
+                        const slideElements = api.slideNodes();
+                        const index = slideElements.findIndex((slide) =>
+                            slide.contains(target)
+                        );
+                        if (index !== -1) {
+                            api.scrollTo(index);
+                        }
+                    }}
+                >
+                    {items}
+                </CarouselContent>
+            </Carousel>
         </div>
     );
 }

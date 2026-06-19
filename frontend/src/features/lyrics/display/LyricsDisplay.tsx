@@ -7,6 +7,7 @@ interface LyricsDisplayProps {
     currentTime: number;
     onLineClick: (startTicks: number) => void;
     enabled?: boolean;
+    isPopover?: boolean;
 }
 
 const LyricsDisplay = ({
@@ -14,6 +15,7 @@ const LyricsDisplay = ({
     currentTime,
     onLineClick,
     enabled = true,
+    isPopover = false,
 }: LyricsDisplayProps) => {
     if (lyrics.isSynced) {
         return (
@@ -23,6 +25,7 @@ const LyricsDisplay = ({
                 offset={lyrics.offset}
                 onLineClick={onLineClick}
                 enabled={enabled}
+                isPopover={isPopover}
             />
         );
     }

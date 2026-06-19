@@ -242,7 +242,7 @@ export function getSubtitleUrl(
 
 export function getPrimaryImageUrl(
     itemId: string,
-    size?: { width?: number; height?: number },
+    size?: { width?: number; height?: number; maxWidth?: number; maxHeight?: number },
     tag?: string
 ) {
     try {
@@ -263,6 +263,12 @@ export function getPrimaryImageUrl(
         if (size?.height) {
             url.searchParams.append('height', size.height.toString());
         }
+        if (size?.maxWidth) {
+            url.searchParams.append('maxWidth', size.maxWidth.toString());
+        }
+        if (size?.maxHeight) {
+            url.searchParams.append('maxHeight', size.maxHeight.toString());
+        }
 
         return url.toString();
     } catch {
@@ -270,8 +276,8 @@ export function getPrimaryImageUrl(
     }
 }
 
-export function getStudioImageUrl(studioId: string) {
-    return getPrimaryImageUrl(studioId);
+export function getStudioImageUrl(studioName: string) {
+    return `/api/studios/${encodeURIComponent(studioName)}/thumb`;
 }
 
 export function getTrickplayImageUrl(itemId: string, width: number, imageIndex: number) {

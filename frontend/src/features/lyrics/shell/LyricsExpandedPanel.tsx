@@ -13,6 +13,7 @@ interface LyricsExpandedPanelProps {
     onLineClick: (startTicks: number) => void;
     onClose: () => void;
     enabled?: boolean;
+    isPopover?: boolean;
 }
 
 const LyricsExpandedPanel = ({
@@ -22,17 +23,25 @@ const LyricsExpandedPanel = ({
     onLineClick,
     onClose,
     enabled = true,
+    isPopover = false,
 }: LyricsExpandedPanelProps) => {
     const { t } = useTranslation('player');
     const coverUrl = getPrimaryImageUrl(track.id, { width: 800, height: 800 });
 
     return (
         <div className="relative flex h-[calc(70vh-7rem)] flex-col overflow-hidden animate-in fade-in duration-300">
-            <div
-                className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-20 blur-2xl"
-                style={{ backgroundImage: `url(${coverUrl})` }}
-            />
-            <div className="relative flex shrink-0 items-center gap-2 border-b border-border/50 px-3 py-2">
+            {!isPopover ? (
+                <div
+                    className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-20 blur-2xl"
+                    style={{ backgroundImage: `url(${coverUrl})` }}
+                />
+            ) : (
+                <div
+                    className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.03]"
+                    style={{ backgroundImage: `url(${coverUrl})` }}
+                />
+            )}
+            <div className="relative flex shrink-0 items-center gap-2 border-b border-border/50 px-3 py-2 z-10">
                 <div className="min-w-0 flex-1 text-center">
                     <p className="truncate text-sm font-medium">{track.title}</p>
                     <p className="truncate text-xs text-muted-foreground">{track.artist}</p>
@@ -48,13 +57,14 @@ const LyricsExpandedPanel = ({
                     <ChevronDown />
                 </Button>
             </div>
-            <div className="relative min-h-0 flex-1">
+            <div className="relative min-h-0 flex-1 z-10">
                 <LyricsDisplay
                     key={enabled ? 'open' : 'closed'}
                     lyrics={lyrics}
                     currentTime={currentTime}
                     onLineClick={onLineClick}
                     enabled={enabled}
+                    isPopover={isPopover}
                 />
             </div>
         </div>

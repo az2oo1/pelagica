@@ -6,6 +6,7 @@ export interface StudioSummary {
     name: string;
     count: number;
     hasThumb?: boolean;
+    thumbType?: string;
 }
 
 export function useStudiosByItemCount(limit: number = 20, hasThumb: boolean = true) {

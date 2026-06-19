@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -20,7 +21,7 @@ var (
 	cacheMutex sync.RWMutex
 	httpClient = &http.Client{Timeout: 5 * time.Second}
 
-	tmdbRegex  = regexp.MustCompile(`https://media\.themoviedb\.org/t/p/[a-zA-Z0-9_]+/[a-zA-Z0-9_-]+\.png`)
+	tmdbRegex  = regexp.MustCompile(`https://(?:media|image)\.themoviedb\.org/t/p/[a-zA-Z0-9_]+/[a-zA-Z0-9_-]+\.(?:png|jpg|jpeg|webp|svg)`)
 	giphyRegex = regexp.MustCompile(`https://media[a-zA-Z0-9\.\-]*giphy\.com/[^"]*giphy\.mp4`)
 )
 
@@ -30,22 +31,9 @@ func SearchStudioLogo(c fiber.Ctx) error {
 		return c.Status(400).SendString("Missing name parameter")
 	}
 
-	safeName := strings.ReplaceAll(name, "/", "-")
-	safeName = strings.ReplaceAll(safeName, "\\", "-")
-	kebabName := getKebabCase(safeName)
-
 	// Check local custom logos first
-	extensions := []string{"svg", "webp", "png", "jpg"}
-	for _, ext := range extensions {
-		localPath := fmt.Sprintf("assets/studios/%s.%s", safeName, ext)
-		kebabPath := fmt.Sprintf("assets/studios/%s.%s", kebabName, ext)
-		
-		if _, err := os.Stat(localPath); err == nil {
-			return c.SendFile(localPath)
-		}
-		if _, err := os.Stat(kebabPath); err == nil {
-			return c.SendFile(kebabPath)
-		}
+	if localPath := findLocalStudioFile(name); localPath != "" {
+		return c.SendFile(localPath)
 	}
 
 	cacheMutex.RLock()
@@ -74,7 +62,12 @@ func SearchStudioLogo(c fiber.Ctx) error {
 		return c.Status(500).SendString("Failed to read response")
 	}
 
-	match := tmdbRegex.FindString(string(bodyBytes))
+	htmlStr := string(bodyBytes)
+	companyIndex := strings.Index(htmlStr, `class="search_results company`)
+	var match string
+	if companyIndex != -1 {
+		match = tmdbRegex.FindString(htmlStr[companyIndex:])
+	}
 	
 	if match != "" {
 		// Convert from thumbnail size to original size
@@ -107,18 +100,50 @@ func SearchStudioVideo(c fiber.Ctx) error {
 		return c.Status(400).SendString("Missing name parameter")
 	}
 
-	safeName := strings.ReplaceAll(name, "/", "-")
-	safeName = strings.ReplaceAll(safeName, "\\", "-")
-	
-	videoPath := fmt.Sprintf("assets/studios/%s.mp4", safeName)
-	kebabPath := fmt.Sprintf("assets/studios/%s.mp4", getKebabCase(safeName))
-	
-	if _, err := os.Stat(videoPath); err == nil {
+	if videoPath := findLocalStudioVideo(name); videoPath != "" {
 		return c.SendFile(videoPath)
-	}
-	if _, err := os.Stat(kebabPath); err == nil {
-		return c.SendFile(kebabPath)
 	}
 
 	return c.Status(404).SendString("Local video not found")
+}
+
+func findLocalStudioFile(studioName string) string {
+	safeName := strings.ReplaceAll(studioName, "/", "-")
+	safeName = strings.ReplaceAll(safeName, "\\", "-")
+	kebabName := getKebabCase(safeName)
+	extensions := []string{"svg", "webp", "png", "jpg"}
+
+	dirs := []string{"assets/studios", "backend/assets/studios"}
+	for _, dir := range dirs {
+		for _, ext := range extensions {
+			path1 := filepath.Join(dir, fmt.Sprintf("%s.%s", safeName, ext))
+			if _, err := os.Stat(path1); err == nil {
+				return path1
+			}
+			path2 := filepath.Join(dir, fmt.Sprintf("%s.%s", kebabName, ext))
+			if _, err := os.Stat(path2); err == nil {
+				return path2
+			}
+		}
+	}
+	return ""
+}
+
+func findLocalStudioVideo(studioName string) string {
+	safeName := strings.ReplaceAll(studioName, "/", "-")
+	safeName = strings.ReplaceAll(safeName, "\\", "-")
+	kebabName := getKebabCase(safeName)
+
+	dirs := []string{"assets/studios", "backend/assets/studios"}
+	for _, dir := range dirs {
+		path1 := filepath.Join(dir, fmt.Sprintf("%s.mp4", safeName))
+		if _, err := os.Stat(path1); err == nil {
+			return path1
+		}
+		path2 := filepath.Join(dir, fmt.Sprintf("%s.mp4", kebabName))
+		if _, err := os.Stat(path2); err == nil {
+			return path2
+		}
+	}
+	return ""
 }

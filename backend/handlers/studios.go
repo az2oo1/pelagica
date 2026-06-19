@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"bufio"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -24,12 +24,17 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
+type studioThumbEntry struct {
+	Name        string `json:"name"`
+	MachineName string `json:"machine-name"`
+}
+
 const (
 	defaultStudiosCacheTTL    = 10 * time.Minute
 	defaultThumbsCacheTTL     = 12 * time.Hour
 	defaultStudiosLimit       = 20
 	maxStudiosLimit           = 300
-	thumbsListURL             = "https://raw.githubusercontent.com/Entree3k/Jellyfin/main/studios/thumbs.txt"
+	studiosJSONURL            = "https://raw.githubusercontent.com/Entree3k/Jellyfin/main/studios/studios.json"
 	thumbBaseURL              = "https://raw.githubusercontent.com/Entree3k/Jellyfin/main/studios/"
 	defaultJellyfinPageSize   = 300
 	studioThumbCacheControl   = "public, max-age=86400"
@@ -173,7 +178,7 @@ func extractJellyfinToken(authorizationHeader string) string {
 }
 
 func applyJellyfinAuthHeaders(req *http.Request, token string) {
-	req.Header.Set("X-Emby-Token", token)
+	req.Header.Set("ApiKey", token)
 	req.Header.Set("Authorization", `MediaBrowser Token="`+token+`"`)
 }
 
@@ -380,7 +385,7 @@ func getStudiosWithCache(jellyfinURL, token string) ([]models.StudioSummary, err
 }
 
 func fetchThumbsList() (map[string]struct{}, error) {
-	req, err := http.NewRequest(http.MethodGet, thumbsListURL, nil)
+	req, err := http.NewRequest(http.MethodGet, studiosJSONURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -393,21 +398,21 @@ func fetchThumbsList() (map[string]struct{}, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("failed to fetch thumbs list: status=" + strconv.Itoa(resp.StatusCode))
+		return nil, errors.New("failed to fetch studios json: status=" + strconv.Itoa(resp.StatusCode))
 	}
 
-	thumbs := map[string]struct{}{}
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
+	var entries []studioThumbEntry
+	if err := json.NewDecoder(resp.Body).Decode(&entries); err != nil {
+		return nil, err
+	}
+
+	thumbs := make(map[string]struct{}, len(entries))
+	for _, e := range entries {
+		name := strings.TrimSpace(e.Name)
+		if name == "" {
 			continue
 		}
-		thumbs[normalizeStudioName(line)] = struct{}{}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, err
+		thumbs[normalizeStudioName(name)] = struct{}{}
 	}
 
 	return thumbs, nil
@@ -550,12 +555,72 @@ func GetStudios(c fiber.Ctx) error {
 		if len(studios) > limit {
 			studios = studios[:limit]
 		}
+		// Populate HasThumb and ThumbType for returned studios
+		thumbs, err := getThumbsListWithCache()
+		for i := range studios {
+			hasThumb := false
+			thumbType := ""
+			if localPath := findLocalStudioFile(studios[i].Name); localPath != "" {
+				hasThumb = true
+				thumbType = "logo"
+			}
+			if !hasThumb && err == nil {
+				_, hasThumb = thumbs[normalizeStudioName(studios[i].Name)]
+				if hasThumb {
+					thumbType = "banner"
+				}
+			}
+			if !hasThumb {
+				cacheMutex.RLock()
+				if cachedUrl, ok := logoCache[studios[i].Name]; ok && cachedUrl != "" {
+					hasThumb = true
+					thumbType = "logo"
+				}
+				cacheMutex.RUnlock()
+			}
+			studios[i].HasThumb = hasThumb
+			studios[i].ThumbType = thumbType
+		}
 		return c.Status(fiber.StatusOK).JSON(studios)
+	}
+
+	thumbs, err := getThumbsListWithCache()
+	if err != nil {
+		log.Printf("studios: failed loading thumbs list: %v", err)
+		return c.Status(fiber.StatusBadGateway).JSON(models.APIError{Error: "Failed to load studio thumbnail metadata"})
 	}
 
 	filtered := make([]models.StudioSummary, 0, limit)
 	for _, studio := range studios {
+		hasThumb := false
+		thumbType := ""
+		if localPath := findLocalStudioFile(studio.Name); localPath != "" {
+			hasThumb = true
+			thumbType = "logo"
+		}
+
+		if !hasThumb {
+			_, hasThumb = thumbs[normalizeStudioName(studio.Name)]
+			if hasThumb {
+				thumbType = "banner"
+			}
+		}
+
+		if !hasThumb {
+			cacheMutex.RLock()
+			if cachedUrl, ok := logoCache[studio.Name]; ok && cachedUrl != "" {
+				hasThumb = true
+				thumbType = "logo"
+			}
+			cacheMutex.RUnlock()
+		}
+
+		if !hasThumb {
+			continue
+		}
+
 		studio.HasThumb = true
+		studio.ThumbType = thumbType
 		filtered = append(filtered, studio)
 		if len(filtered) == limit {
 			break
@@ -566,5 +631,92 @@ func GetStudios(c fiber.Ctx) error {
 }
 
 func GetStudioThumb(c fiber.Ctx) error {
-	return c.Redirect().Status(fiber.StatusFound).To("https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.mp4")
+	rawStudioName := strings.TrimSpace(c.Params("name"))
+	studioName, unescapeErr := url.PathUnescape(rawStudioName)
+	if unescapeErr != nil {
+		studioName = rawStudioName
+	}
+	studioName = strings.TrimSpace(studioName)
+	if studioName == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(models.APIError{Error: "Studio name is required"})
+	}
+
+	// 1. Fallback 2: Local Custom assets ("the ones we made")
+	if localPath := findLocalStudioFile(studioName); localPath != "" {
+		return c.SendFile(localPath)
+	}
+
+	// 2. Try Github database thumbs
+	thumbs, err := getThumbsListWithCache()
+	if err == nil {
+		normalized := normalizeStudioName(studioName)
+		if _, ok := thumbs[normalized]; ok {
+			cacheDir, err := thumbCacheDir()
+			if err == nil {
+				cachePath := thumbCachePath(cacheDir, normalized)
+				// Cache hit
+				if _, statErr := os.Stat(cachePath); statErr == nil {
+					c.Set("Content-Type", studioThumbContentType)
+					c.Set("Cache-Control", studioThumbCacheControl)
+					return c.SendFile(cachePath)
+				}
+				// Cache miss: fetch via singleflight
+				_, err, _ = thumbFetchGroup.Do(normalized, func() (interface{}, error) {
+					if _, statErr := os.Stat(cachePath); statErr == nil {
+						return nil, nil
+					}
+					return nil, downloadStudioThumb(studioName, cacheDir, cachePath)
+				})
+				if err == nil {
+					log.Printf("studios: cached thumbnail for %q", normalized)
+					c.Set("Content-Type", studioThumbContentType)
+					c.Set("Cache-Control", studioThumbCacheControl)
+					return c.SendFile(cachePath)
+				}
+			}
+		}
+	}
+
+	// 3. Fallback 3: TMDB Scraper logo
+	cacheMutex.RLock()
+	if cachedUrl, ok := logoCache[studioName]; ok {
+		cacheMutex.RUnlock()
+		if cachedUrl != "" {
+			return c.Redirect().Status(302).To(cachedUrl)
+		}
+	} else {
+		cacheMutex.RUnlock()
+	}
+
+	searchUrl := fmt.Sprintf("https://www.themoviedb.org/search/company?query=%s", url.QueryEscape(studioName))
+	req, _ := http.NewRequest("GET", searchUrl, nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	resp, err := httpClient.Do(req)
+	if err == nil {
+		defer resp.Body.Close()
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err == nil {
+			htmlStr := string(bodyBytes)
+			companyIndex := strings.Index(htmlStr, `class="search_results company`)
+			var match string
+			if companyIndex != -1 {
+				match = tmdbRegex.FindString(htmlStr[companyIndex:])
+			}
+
+			if match != "" {
+				parts := strings.Split(match, "/")
+				filename := parts[len(parts)-1]
+				highResMatch := fmt.Sprintf("https://image.tmdb.org/t/p/original/%s", filename)
+				
+				cacheMutex.Lock()
+				logoCache[studioName] = highResMatch
+				cacheMutex.Unlock()
+
+				return c.Redirect().Status(302).To(highResMatch)
+			}
+		}
+	}
+
+	// 4. Return 404 if all options fail
+	return c.Status(fiber.StatusNotFound).JSON(models.APIError{Error: "Studio thumbnail not found"})
 }
