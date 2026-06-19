@@ -60,7 +60,7 @@ func main() {
 	api.Get("/studios", handlers.GetStudios)
 	api.Get("/studios/search/logo", handlers.SearchStudioLogo)
 	api.Get("/studios/search/video", handlers.SearchStudioVideo)
-	api.Get("/studios/:name/thumb", handlers.GetStudioThumb)
+	api.Get("/studios/*/thumb", handlers.GetStudioThumb)
 
 	api.All("/seerr/*", handlers.ProxySeerrRequest)
 

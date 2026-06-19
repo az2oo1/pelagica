@@ -166,6 +166,23 @@ export const SpatialNavigation = () => {
                 }
             });
 
+            // Carousel looping fallback:
+            // If we didn't find any candidate in the visual direction, but we are inside a carousel and moving horizontally,
+            // we manually target the opposite visual boundary (first/last element) in that same carousel.
+            if (!bestCandidate && ['ArrowLeft', 'ArrowRight'].includes(direction)) {
+                const carouselContent = activeEl.closest('[data-slot="carousel-content"]');
+                if (carouselContent) {
+                    const carouselFocusables = getFocusableElements(carouselContent as HTMLElement);
+                    if (carouselFocusables.length > 0) {
+                        if (direction === 'ArrowRight') {
+                            bestCandidate = carouselFocusables[0];
+                        } else if (direction === 'ArrowLeft') {
+                            bestCandidate = carouselFocusables[carouselFocusables.length - 1];
+                        }
+                    }
+                }
+            }
+
             if (bestCandidate) {
                 const element = bestCandidate as HTMLElement;
                 element.focus({ preventScroll: true });
@@ -296,6 +313,20 @@ export const SpatialNavigation = () => {
                 }
                 case 1: {
                     window.history.back();
+                    break;
+                }
+                case 2: { // Square (Playstation) / X (Xbox)
+                    const activeEl = document.activeElement as HTMLElement;
+                    if (activeEl) {
+                        const rect = activeEl.getBoundingClientRect();
+                        const event = new MouseEvent('contextmenu', {
+                            bubbles: true,
+                            cancelable: true,
+                            clientX: rect.left + rect.width / 2,
+                            clientY: rect.top + rect.height / 2,
+                        });
+                        activeEl.dispatchEvent(event);
+                    }
                     break;
                 }
             }

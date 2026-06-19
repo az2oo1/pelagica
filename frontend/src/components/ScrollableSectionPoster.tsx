@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import GenreOverlay from './GenreOverlay';
 import PosterPlayButton from './PosterPlayButton';
 import { useMusicPlayback } from '@/hooks/useMusicPlayback';
+import ItemContextMenu from './ItemContextMenu';
 
 interface ScrollableSectionPosterProps {
     item?: BaseItemDto;
@@ -71,41 +72,37 @@ const ScrollableSectionPoster = ({
         }
     };
 
-    if (posterFailed) {
-        return (
-            <Link
-                to={`/item/${itemId || item?.Id}`}
-                key={itemId || item?.Id}
-                className={cn('group block outline-none focus:outline-none focus-visible:outline-none', className)}
-                onClick={handleClick}
+    const posterContent = posterFailed ? (
+        <Link
+            to={`/item/${itemId || item?.Id}`}
+            key={itemId || item?.Id}
+            className={cn('group block outline-none focus:outline-none focus-visible:outline-none', className)}
+            onClick={handleClick}
+        >
+            <div
+                className={`relative overflow-hidden ${roundedClass} ${posterClasses} bg-muted flex items-center justify-center`}
             >
-                <div
-                    className={`relative overflow-hidden ${roundedClass} ${posterClasses} bg-muted flex items-center justify-center`}
-                >
-                    <ImageOff className="text-muted-foreground" size={32} />
-                    <WatchedStateBadge
-                        item={item}
-                        show={config?.watchedStateBadgeHomeScreen || false}
-                    />
-                    <GenreOverlay item={item} show={showGenres && item?.Type !== 'Playlist' && item?.Type !== 'MusicAlbum' && item?.Type !== 'Audio'} />
-                    {!isArtist && (
-                        <div className="absolute inset-0 rounded-md pointer-events-none poster-card-outline z-20" />
-                    )}
-                </div>
-                <p
-                    className={cn(
-                        'mt-2 text-sm line-clamp-1 text-ellipsis break-all max-w-36 lg:max-w-44 2xl:max-w-52',
-                        isArtist && 'text-center w-full'
-                    )}
-                >
-                    {itemName || item?.Name || ''}
-                </p>
-                {children}
-            </Link>
-        );
-    }
-
-    return (
+                <ImageOff className="text-muted-foreground" size={32} />
+                <WatchedStateBadge
+                    item={item}
+                    show={config?.watchedStateBadgeHomeScreen || false}
+                />
+                <GenreOverlay item={item} show={showGenres && item?.Type !== 'Playlist' && item?.Type !== 'MusicAlbum' && item?.Type !== 'Audio'} />
+                {!isArtist && (
+                    <div className="absolute inset-0 rounded-md pointer-events-none poster-card-outline z-20" />
+                )}
+            </div>
+            <p
+                className={cn(
+                    'mt-2 text-sm line-clamp-1 text-ellipsis break-all max-w-36 lg:max-w-44 2xl:max-w-52',
+                    isArtist && 'text-center w-full'
+                )}
+            >
+                {itemName || item?.Name || ''}
+            </p>
+            {children}
+        </Link>
+    ) : (
         <Link
             to={`/item/${itemId || item?.Id}`}
             key={itemId || item?.Id}
@@ -189,6 +186,14 @@ const ScrollableSectionPoster = ({
             </p>
             {children}
         </Link>
+    );
+
+    if (!item) return posterContent;
+
+    return (
+        <ItemContextMenu item={item}>
+            {posterContent}
+        </ItemContextMenu>
     );
 };
 export default ScrollableSectionPoster;

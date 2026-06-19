@@ -7,6 +7,17 @@ import {
     type CarouselApi,
 } from './ui/carousel';
 
+// Global flag to track if the pointer (mouse/touch) is currently pressed down.
+// This allows us to distinguish between pointer-triggered focus (which shouldn't trigger scrollTo)
+// and keyboard/gamepad spatial navigation focus (which should trigger scrollTo).
+let globalIsMouseDown = false;
+if (typeof window !== 'undefined') {
+    window.addEventListener('mousedown', () => { globalIsMouseDown = true; }, true);
+    window.addEventListener('mouseup', () => { globalIsMouseDown = false; }, true);
+    window.addEventListener('touchstart', () => { globalIsMouseDown = true; }, true);
+    window.addEventListener('touchend', () => { globalIsMouseDown = false; }, true);
+}
+
 interface SectionScrollerProps {
     title?: React.ReactNode;
     items: React.ReactNode[];
@@ -97,6 +108,7 @@ export default function SectionScroller({
                 <CarouselContent
                     className="gap-4 -ml-0"
                     onFocusCapture={(e) => {
+                        if (globalIsMouseDown) return;
                         if (!api) return;
                         const target = e.target as HTMLElement;
                         const slideElements = api.slideNodes();

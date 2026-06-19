@@ -2,7 +2,7 @@ import SectionScroller from '@/components/SectionScroller';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router';
-import { ChevronRight, ImageOff } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { useStudiosByItemCount } from '../../hooks/api/useStudiosApi';
 import { getStudioImageUrl } from '@/utils/jellyfinUrls';
 import { cn } from '@/lib/utils';
@@ -109,7 +109,11 @@ export const StudioDisplay = ({
                 style={isLogo ? { backgroundColor: getStudioTrademarkColor(item.name) } : undefined}
             >
                 {imageError ? (
-                    <ImageOff className="w-8 h-8 text-muted-foreground" />
+                    <div className="flex flex-col items-center justify-center p-3 text-center w-full h-full bg-gradient-to-br from-neutral-800 to-neutral-900 border border-white/5">
+                        <span className="font-extrabold text-xs sm:text-sm lg:text-base tracking-widest text-neutral-300 drop-shadow-md uppercase break-words px-2 font-mono">
+                            {item.name}
+                        </span>
+                    </div>
                 ) : (
                     <>
                         <img

@@ -8,6 +8,7 @@ import { Link, useNavigate } from 'react-router';
 import WatchedStateBadge from '@/components/WatchedStateBadge';
 import { cn } from '@/lib/utils';
 import { useMusicPlayback } from '@/hooks/useMusicPlayback';
+import ItemContextMenu from '@/components/ItemContextMenu';
 
 const LibraryItem = ({
     item,
@@ -68,7 +69,7 @@ const LibraryItem = ({
               : 0
         : 0;
     
-    return (
+    const cardContent = (
         <Link
             to={itemPath}
             key={item.Id}
@@ -160,6 +161,12 @@ const LibraryItem = ({
                 </span>
             </div>
         </Link>
+    );
+
+    return (
+        <ItemContextMenu item={item}>
+            {cardContent}
+        </ItemContextMenu>
     );
 };
 

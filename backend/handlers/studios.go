@@ -631,7 +631,7 @@ func GetStudios(c fiber.Ctx) error {
 }
 
 func GetStudioThumb(c fiber.Ctx) error {
-	rawStudioName := strings.TrimSpace(c.Params("name"))
+	rawStudioName := strings.TrimSpace(c.Params("*"))
 	studioName, unescapeErr := url.PathUnescape(rawStudioName)
 	if unescapeErr != nil {
 		studioName = rawStudioName
