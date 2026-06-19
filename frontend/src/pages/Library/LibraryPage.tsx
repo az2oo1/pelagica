@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Page from '../Page';
 import { useUserViews } from '@/hooks/api/useUserViews';
 import { useMemo, useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 import { useLibraryItems } from '@/hooks/api/useLibraryItems';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -37,7 +38,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import type { BaseItemDto, BaseItemKind, CollectionType, ItemSortBy, SortOrder } from '@jellyfin/sdk/lib/generated-client/models';
+import type { BaseItemKind, CollectionType, ItemSortBy, SortOrder } from '@jellyfin/sdk/lib/generated-client/models';
 import { ButtonGroup } from '@/components/ui/button-group';
 import LibraryItem from './LibraryItem';
 import HomeVideoGrid, { TARGET_ROW_HEIGHT } from './HomeVideoGrid';
@@ -47,26 +48,18 @@ import { getPrimaryImageUrl, type ImageSize } from '@/utils/jellyfinUrls';
 const ITEM_ROWS = 5;
 const HOME_VIDEO_PAGE_SIZE = 50;
 
-const DEFAULT_POSTER_SIZE = { width: 416, height: 640 };
 
 const ITEM_POSTER_SIZES: Partial<Record<CollectionType, ImageSize>> = {
     music: { width: 416, height: 416 },
     musicvideos: { width: 700, height: 394 },
 };
 
-const DEFAULT_POSTER_ASPECT_RATIO = '2/3';
 
 const ITEM_POSTER_ASPECT_RATIOS: Partial<Record<CollectionType, string>> = {
     music: 'square',
     musicvideos: '16/9',
 };
 
-const DEFAULT_GRID_COLS = "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 2xl:grid-cols-9";
-
-const ITEM_GRID_COLS: Partial<Record<CollectionType, string>> = {
-    musicvideos: "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
-    homevideos: "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
-};
 
 type GridConfig = { cols: string; breakpoints: [number, number][] };
 
@@ -107,13 +100,6 @@ const COLLECTION_ITEM_TYPES: Partial<Record<CollectionType, BaseItemKind[]>> = {
     homevideos: ['Video', 'Photo'],
 };
 
-function getDetailLine(item: BaseItemDto): string | undefined {
-    if (item.Type === 'MusicAlbum') {
-        return item.AlbumArtist || undefined;
-    }
-
-    return item.PremiereDate ? new Date(item.PremiereDate).getFullYear().toString() : undefined;
-}
 
 const SKELETON_ASPECT_RATIOS = [1.5, 0.75, 1.78, 1, 1.33, 0.67, 2, 1.2, 1.5, 0.8, 1, 1.78];
 
@@ -212,7 +198,6 @@ const LibraryContent = ({
 
     const totalPages = libraryData?.totalCount ? Math.ceil(libraryData.totalCount / pageSize) : 0;
     const gridCols = getGridConfig(collectionType as CollectionType).cols;
-    const posterAspectRatio = ITEM_POSTER_ASPECT_RATIOS[collectionType as CollectionType] || DEFAULT_POSTER_ASPECT_RATIO;
     const isDirectPlay = DIRECT_PLAY_TYPES.includes(collectionType as CollectionType);
     const isHomeVideos = collectionType === 'homevideos';
 

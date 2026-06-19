@@ -4,7 +4,6 @@ import { Button } from './ui/button';
 import {
     Carousel,
     CarouselContent,
-    CarouselItem,
     type CarouselApi,
 } from './ui/carousel';
 
