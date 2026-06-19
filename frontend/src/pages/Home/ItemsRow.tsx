@@ -25,7 +25,6 @@ function getDetailFieldsStringForItem(
     t: TFunction
 ): ReactNode {
     switch (detailField) {
-<<<<<<< HEAD
         case 'ReleaseYear': {
             if (!item.PremiereDate) return '';
             const yearStr = new Date(item.PremiereDate).getFullYear().toString();
