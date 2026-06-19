@@ -1,6 +1,6 @@
 import { useParams, useSearchParams, useNavigate } from 'react-router';
 import { useStudioItems } from '../../hooks/api/useStudioItems';
-import ItemsListPage from './ItemsListPage';
+import ItemsListPage from '../../components/ItemsListPage';
 import Page from '../Page';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';

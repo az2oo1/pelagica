@@ -13,7 +13,6 @@ import { getUserId } from '@/utils/localstorageCredentials';
 import BoxSetPage from './BoxSetPage';
 import MusicAlbumPage from './MusicAlbumPage';
 import PlaylistPage from './PlaylistPage';
-import GenrePage from './GenrePage';
 import type { BaseItemKind } from '@jellyfin/sdk/lib/generated-client/models';
 import MusicArtistPage from './MusicArtistPage';
 
@@ -86,6 +85,7 @@ const FULL_PAGE_ITEM_TYPES: BaseItemKind[] = ['Movie', 'Series', 'Episode', 'Sea
 
 const REDIRECT_ITEM_TYPES: Partial<Record<BaseItemKind, string>> = {
     Person: '/person',
+    Genre: '/genre',
 };
 
 const ItemPage = () => {
@@ -130,8 +130,6 @@ const ItemPage = () => {
                             return <MusicAlbumPage item={item} config={config} />;
                         case 'Playlist':
                             return <PlaylistPage item={item} config={config} />;
-                        case 'Genre':
-                            return <GenrePage item={item} />;
                         case 'MusicArtist':
                             return <MusicArtistPage item={item} config={config} />;
                         default:

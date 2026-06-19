@@ -24,7 +24,7 @@ const GenreItem = ({
 
     return (
         <Link
-            to={`/item/${genreWithItem.id}`}
+            to={`/genre/${genreWithItem.id}`}
             key={genreWithItem.id}
             className={cn('p-0 m-0 group block cursor-pointer', className)}
             onMouseEnter={() => setIsHovered(true)}

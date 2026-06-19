@@ -30,6 +30,7 @@ import StatsConsentModal from './components/StatsConsentModal.tsx';
 import { AppPreloader } from './components/AppPreloader.tsx';
 import PhotoViewerPage from './pages/PhotoViewer/PhotoViewerPage.tsx';
 import { ScrollToTop } from './components/ScrollToTop.tsx';
+import GenrePage from './pages/Genre/GenrePage.tsx';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -62,6 +63,7 @@ createRoot(document.getElementById('root')!).render(
                                 <Route path="/studios" element={<AllStudiosPage />} />
                                 <Route path="/studio/:studioId" element={<StudioPage />} />
                                 <Route path="/person/:itemId" element={<PersonPage />} />
+                                <Route path="/genre/:itemId" element={<GenrePage />} />
                                 <Route path="/login" element={<LoginPage />} />
                                 <Route path="/play/:itemId" element={<PlayerPage />} />
                                 <Route path="/settings" element={<SettingsPage />} />
