@@ -29,11 +29,15 @@ const EpisodeCardImage = memo(
                     }
                     alt={episode.Name || ''}
                     className={cn(
-                        'w-full h-full object-cover rounded-md transform-gpu will-change-transform z-10 poster-image',
+                        'w-full h-full object-cover rounded-md z-10 poster-image',
                         isLoaded
-                            ? 'blur-0 opacity-100 scale-100'
-                            : 'blur-md opacity-40 scale-95',
-                        isLoaded && 'group-hover:opacity-90 group-hover:scale-105 group-focus-within:opacity-90 group-focus-within:scale-105 group-focus:opacity-90 group-focus:scale-105'
+                            ? [
+                                  'transition-[opacity,transform,scale] duration-[250ms] ease-out',
+                                  'opacity-100 scale-100',
+                                  'group-hover:opacity-90 group-hover:scale-105',
+                                  'group-focus-within:opacity-90 group-focus-within:scale-105',
+                              ].join(' ')
+                            : 'opacity-0 scale-95'
                     )}
                     onLoad={() => setIsLoaded(true)}
                     onError={onError}

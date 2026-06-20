@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import SectionScroller from '@/components/SectionScroller';
 import type { BaseItemDto } from '@jellyfin/sdk/lib/generated-client/models';
 import { cn } from '@/lib/utils';
+import ItemContextMenu from '@/components/ItemContextMenu';
 
 interface BaseContinueRowProps {
     title: string;
@@ -67,11 +68,11 @@ export function BaseContinueRow({
                                   const progress = runtime > 0 ? (watched / runtime) * 100 : 0;
 
                                   return (
-                                      <Link
-                                          to={`/item/${item.Id}`}
-                                          key={item.Id}
-                                          className="group w-min min-w-48 lg:min-w-64 2xl:min-w-80 block outline-none focus:outline-none focus-visible:outline-none"
-                                      >
+                                      <ItemContextMenu item={item} key={item.Id}>
+                                          <Link
+                                              to={`/item/${item.Id}`}
+                                              className="group w-min min-w-48 lg:min-w-64 2xl:min-w-80 block outline-none focus:outline-none focus-visible:outline-none"
+                                          >
                                           <div className="relative w-full aspect-video rounded-md overflow-hidden">
                                               {imageErrors[item.Id!] ? (
                                                   <div className="w-full h-full bg-muted flex items-center justify-center rounded-md">
@@ -100,12 +101,15 @@ export function BaseContinueRow({
                                                           }
                                                           alt={item.Name || t('no_title')}
                                                           className={cn(
-                                                              'w-full h-full object-cover rounded-md transform-gpu will-change-transform z-10 poster-image',
+                                                              'w-full h-full object-cover rounded-md z-10 poster-image',
                                                               loadedImages[item.Id!]
-                                                                  ? 'blur-0 opacity-100 scale-100'
-                                                                  : 'blur-md opacity-40 scale-95',
-                                                              loadedImages[item.Id!] &&
-                                                                  'group-hover:opacity-90 group-hover:scale-105 group-focus-within:opacity-90 group-focus-within:scale-105 group-focus:opacity-90 group-focus:scale-105'
+                                                                  ? [
+                                                                        'transition-[opacity,transform,scale] duration-[250ms] ease-out',
+                                                                        'opacity-100 scale-100',
+                                                                        'group-hover:opacity-90 group-hover:scale-105',
+                                                                        'group-focus-within:opacity-90 group-focus-within:scale-105',
+                                                                    ].join(' ')
+                                                                  : 'opacity-0 scale-95'
                                                           )}
                                                           onLoad={() => handleImageLoad(item.Id!)}
                                                           onError={() => handleImageError(item.Id!)}
@@ -178,6 +182,7 @@ export function BaseContinueRow({
                                                   : null}
                                           </div>
                                       </Link>
+                                      </ItemContextMenu>
                                   );
                               })
                     }

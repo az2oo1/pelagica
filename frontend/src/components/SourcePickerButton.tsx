@@ -45,7 +45,14 @@ const SourcePickerButton = ({
             const playBtn = document.getElementById('play-button');
             if (playBtn) {
                 playBtn.focus({ preventScroll: true });
-                window.scrollTo({ top: 0, behavior: 'instant' });
+                const rect = playBtn.getBoundingClientRect();
+                const elementTop = rect.top + window.scrollY;
+                const elementHeight = rect.height;
+                const viewportHeight = window.innerHeight;
+                const targetY = elementTop - (viewportHeight - elementHeight) / 2;
+                const maxScrollY = document.documentElement.scrollHeight - viewportHeight;
+                const clampedTargetY = Math.max(0, Math.min(maxScrollY, targetY));
+                window.scrollTo({ top: clampedTargetY, behavior: 'instant' });
             }
         }, 50);
         return () => clearTimeout(timer);

@@ -26,38 +26,11 @@ const getFocusableElements = (container: HTMLElement | Document = document): HTM
 export const SpatialNavigation = () => {
     useEffect(() => {
         let lastMoveTime = 0;
-        let scrollAnimationId: number | null = null;
-        let currentTargetY = window.scrollY;
-
-        const smoothScrollToY = (targetY: number) => {
-            currentTargetY = targetY;
-            
-            if (scrollAnimationId !== null) {
-                return;
-            }
-
-            const step = () => {
-                const currentY = window.scrollY;
-                const diff = currentTargetY - currentY;
-                
-                if (Math.abs(diff) < 0.5) {
-                    window.scrollTo(window.scrollX, currentTargetY);
-                    scrollAnimationId = null;
-                } else {
-                    const nextY = currentY + diff * 0.22;
-                    window.scrollTo(window.scrollX, nextY);
-                    scrollAnimationId = requestAnimationFrame(step);
-                }
-            };
-            
-            scrollAnimationId = requestAnimationFrame(step);
-        };
-
         // Try focusing home button on mount
         const timer = setTimeout(() => {
             const homeBtn = document.getElementById('home-nav-button');
             if (homeBtn) {
-                homeBtn.focus();
+                homeBtn.focus({ preventScroll: true });
             }
         }, 150);
 
@@ -85,7 +58,9 @@ export const SpatialNavigation = () => {
                 return;
             }
 
-            const scrollBehavior: ScrollBehavior = now - lastMoveTime < 250 ? 'auto' : 'smooth';
+            // If the user is moving very fast (e.g., holding down the key), use 'auto' (instant) 
+            // so the scroll doesn't lag behind the cursor. Otherwise, use 'smooth'.
+            const scrollBehavior: ScrollBehavior = now - lastMoveTime < 150 ? 'auto' : 'smooth';
 
             const activeEl = document.activeElement as HTMLElement;
             
@@ -157,7 +132,7 @@ export const SpatialNavigation = () => {
                     const maxScrollY = document.documentElement.scrollHeight - viewportHeight;
                     const clampedTargetY = Math.max(0, Math.min(maxScrollY, targetY));
                     
-                    smoothScrollToY(clampedTargetY);
+                    window.scrollTo({ top: clampedTargetY, behavior: scrollBehavior });
                     lastMoveTime = now;
                 }
                 return;
@@ -302,7 +277,7 @@ export const SpatialNavigation = () => {
                 if (!inCarousel || !isHorizontal) {
                     if (modalContainer) {
                         element.scrollIntoView({
-                            behavior: scrollBehavior,
+                            behavior: 'smooth',
                             block: isHorizontal ? 'nearest' : 'center',
                             inline: 'nearest',
                         });
@@ -310,10 +285,10 @@ export const SpatialNavigation = () => {
                         if (isHorizontal) {
                             const parent = element.parentElement;
                             if (parent && element === parent.firstElementChild) {
-                                parent.scrollTo({ left: 0, behavior: scrollBehavior });
+                                parent.scrollTo({ left: 0, behavior: 'smooth' });
                             } else {
                                 element.scrollIntoView({
-                                    behavior: scrollBehavior,
+                                    behavior: 'smooth',
                                     block: 'nearest',
                                     inline: 'start',
                                 });
@@ -327,7 +302,34 @@ export const SpatialNavigation = () => {
                             const maxScrollY = document.documentElement.scrollHeight - viewportHeight;
                             const clampedTargetY = Math.max(0, Math.min(maxScrollY, targetY));
                             
-                            smoothScrollToY(clampedTargetY);
+                            // Use custom high-performance lerp scrolling for vertical navigation
+                            if ((window as any).__spatialTargetY === undefined) {
+                                (window as any).__spatialTargetY = window.scrollY;
+                            }
+                            (window as any).__spatialTargetY = clampedTargetY;
+
+                            if (!(window as any).__spatialIsAnimating) {
+                                (window as any).__spatialIsAnimating = true;
+
+                                const loop = () => {
+                                    const currentY = window.scrollY;
+                                    const target = (window as any).__spatialTargetY;
+                                    const distance = target - currentY;
+
+                                    if (Math.abs(distance) < 1 || (window as any).__spatialCancelAnimation) {
+                                        window.scrollTo(0, target);
+                                        (window as any).__spatialIsAnimating = false;
+                                        (window as any).__spatialCancelAnimation = false;
+                                        return;
+                                    }
+
+                                    // Move 35% of the distance each frame for a snappy but smooth motion
+                                    window.scrollTo(0, currentY + distance * 0.35);
+                                    requestAnimationFrame(loop);
+                                };
+
+                                requestAnimationFrame(loop);
+                            }
                         }
                     }
                 }
@@ -448,13 +450,21 @@ export const SpatialNavigation = () => {
 
         gamepadRequestRef = requestAnimationFrame(pollGamepad);
 
+        const cancelAnimation = () => {
+            (window as any).__spatialCancelAnimation = true;
+        };
+
+        window.addEventListener('wheel', cancelAnimation, { passive: true });
+        window.addEventListener('touchstart', cancelAnimation, { passive: true });
+        window.addEventListener('mousedown', cancelAnimation, { passive: true });
+
         return () => {
             clearTimeout(timer);
             window.removeEventListener('keydown', handleKeyDown, { capture: true });
             cancelAnimationFrame(gamepadRequestRef);
-            if (scrollAnimationId !== null) {
-                cancelAnimationFrame(scrollAnimationId);
-            }
+            window.removeEventListener('wheel', cancelAnimation);
+            window.removeEventListener('touchstart', cancelAnimation);
+            window.removeEventListener('mousedown', cancelAnimation);
         };
     }, []);
 

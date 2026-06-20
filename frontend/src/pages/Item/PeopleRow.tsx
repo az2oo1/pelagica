@@ -73,7 +73,7 @@ const PeopleRow = memo(
                                             person.PrimaryImageTag || undefined
                                         )}
                                         alt={person.Name || 'No Name'}
-                                        className="h-full w-full object-cover group-hover:opacity-75 group-hover:scale-105 group-focus-within:opacity-75 group-focus-within:scale-105 group-focus:opacity-75 group-focus:scale-105 transition-all duration-300 ease-out will-change-transform"
+                                        className="h-full w-full object-cover group-hover:opacity-75 group-hover:scale-105 group-focus-within:opacity-75 group-focus-within:scale-105 group-focus:opacity-75 group-focus:scale-105 transition-all duration-300 ease-out"
                                         onError={() => handleProfilePictureError(person.Id!)}
                                     />
                                 )}

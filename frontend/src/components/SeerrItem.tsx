@@ -64,8 +64,10 @@ export default function SeerrItem({ item }: SeerrItemProps) {
                                     src={posterUrl}
                                     alt={title}
                                     className={cn(
-                                        'w-full h-full object-cover rounded-md transform-gpu will-change-transform z-10 poster-image transition-all duration-300',
-                                        isImageLoaded ? 'blur-0 opacity-100 scale-100' : 'blur-md opacity-40 scale-95',
+                                        'w-full h-full object-cover rounded-md z-10 poster-image transition-all duration-300',
+                                        isImageLoaded
+                                            ? 'blur-0 opacity-100 scale-100'
+                                            : 'opacity-0 scale-95',
                                         isImageLoaded && 'group-hover:scale-105'
                                     )}
                                     loading="lazy"

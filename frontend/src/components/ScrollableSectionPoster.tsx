@@ -180,7 +180,7 @@ const ScrollableSectionPoster = ({
                     className={cn(
                         minPosterClasses,
                         posterClasses,
-                        'object-cover transform-gpu will-change-transform z-10',
+                        'object-cover z-10',
                         roundedClass,
                         isImageLoaded
                             ? [
@@ -189,7 +189,7 @@ const ScrollableSectionPoster = ({
                                   'group-hover:opacity-90 group-hover:scale-105',
                                   'group-focus-within:opacity-90 group-focus-within:scale-105',
                               ].join(' ')
-                            : 'opacity-40 scale-95 blur-sm'
+                            : 'opacity-0 scale-95'
                     )}
                     loading="lazy"
                     onLoad={() => setIsImageLoaded(true)}

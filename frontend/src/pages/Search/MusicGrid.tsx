@@ -50,10 +50,10 @@ const MusicItem = ({ item }: { item: BaseItemDto }) => {
                                 src={`${posterUrl}&maxWidth=300&maxHeight=300&quality=85`}
                                 alt={item.Name || 'No Title'}
                                 className={cn(
-                                    'w-full h-full object-cover rounded-md transform-gpu will-change-transform z-10 poster-image',
+                                    'w-full h-full object-cover rounded-md z-10 poster-image transition-[opacity,transform,scale] duration-[250ms] ease-out',
                                     isImageLoaded
-                                        ? 'blur-0 opacity-100 scale-100'
-                                        : 'blur-md opacity-40 scale-95',
+                                        ? 'opacity-100 scale-100'
+                                        : 'opacity-0 scale-95',
                                     isImageLoaded && 'group-hover:opacity-90 group-hover:scale-105'
                                 )}
                                 loading="lazy"

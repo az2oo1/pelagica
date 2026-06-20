@@ -121,11 +121,11 @@ export const StudioDisplay = ({
                             src={getStudioImageUrl(item.name)}
                             alt={item.name || 'No Name'}
                             className={cn(
-                                'absolute inset-0 w-full h-full transform-gpu will-change-transform z-10 poster-image transition-all duration-500',
+                                'absolute inset-0 w-full h-full z-10 poster-image transition-all duration-500',
                                 isLogo ? 'object-contain p-4' : 'object-cover',
                                 isImageLoaded
                                     ? 'blur-0 opacity-100 scale-100'
-                                    : 'blur-md opacity-0 scale-95',
+                                    : 'opacity-0 scale-95',
                                 isImageLoaded && isHovered && hasVideo ? 'scale-110 opacity-0' : 'scale-100 opacity-100'
                             )}
                             onLoad={(e) => {

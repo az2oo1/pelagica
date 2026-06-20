@@ -89,10 +89,10 @@ const LibraryItem = ({
                              src={posterUrl}
                              alt={item.Name || t('library:no_title')}
                              className={cn(
-                                 'w-full h-full object-cover rounded-md transform-gpu will-change-transform z-10 poster-image',
+                                 'w-full h-full object-cover rounded-md z-10 poster-image transition-[opacity,transform,scale] duration-[250ms] ease-out',
                                  isImageLoaded
-                                     ? 'blur-0 opacity-100 scale-100'
-                                     : 'blur-md opacity-40 scale-95',
+                                     ? 'opacity-100 scale-100'
+                                     : 'opacity-0 scale-95',
                                  isImageLoaded && 'group-hover:opacity-90 group-hover:scale-105 group-focus-within:opacity-90 group-focus-within:scale-105 group-focus:opacity-90 group-focus:scale-105'
                              )}
                              loading="lazy"
