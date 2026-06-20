@@ -142,7 +142,7 @@ const PosterPlayButton = ({ item, itemId }: PosterPlayButtonProps) => {
     return (
         <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 group-focus:opacity-100 transition-opacity duration-150 z-30">
             <div
-                className="flex items-center justify-center backdrop-blur-md bg-black/40 border border-white/15 rounded-full w-9 h-9 cursor-pointer hover:bg-black/60"
+                className="flex items-center justify-center bg-black/80 border border-white/15 rounded-full w-9 h-9 cursor-pointer hover:bg-black/90"
                 role="button"
                 aria-label="Play"
                 onClick={handleClick}

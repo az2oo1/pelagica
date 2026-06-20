@@ -67,7 +67,7 @@ export const GenreOverlay = ({ item, show }: GenreOverlayProps) => {
                         key={genre}
                         className={cn(
                             // Pill: fixed height, expands max-width. Icon pinned right, text reveals left.
-                            'flex flex-row-reverse items-center bg-black/70 border border-white/10 backdrop-blur-xs text-white text-[10px] font-medium rounded-full h-6 px-1.5 shadow-sm overflow-hidden transition-[max-width] duration-300 ease-out',
+                            'flex flex-row-reverse items-center bg-black/85 border border-white/10 text-white text-[10px] font-medium rounded-full h-6 px-1.5 shadow-sm overflow-hidden transition-[max-width] duration-300 ease-out',
                             // Collapsed = just icon width; hovered/focused = expanded max-width
                             'w-auto max-w-6 group-hover:max-w-32 group-focus-within:max-w-32 group-focus:max-w-32'
                         )}

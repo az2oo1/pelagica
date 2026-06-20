@@ -245,7 +245,7 @@ const PlayerControls = ({
         };
     }, [isPlaying, resetPauseTimer, config.showPauseOverlay]);
 
-    const resetHideTimeout = () => {
+    const resetHideTimeout = useCallback(() => {
         setShowControls(true);
         if (hideTimeoutRef.current) {
             clearTimeout(hideTimeoutRef.current);
@@ -253,7 +253,7 @@ const PlayerControls = ({
         hideTimeoutRef.current = setTimeout(() => {
             setShowControls(false);
         }, 3000);
-    };
+    }, []);
 
     const handleMouseMove = () => {
         resetHideTimeout();
@@ -466,6 +466,30 @@ const PlayerControls = ({
         player.currentTime(newTime);
     }, [player, duration]);
 
+    const handleVolumeUp = useCallback(() => {
+        if (!player) return;
+        setVolume((prev) => {
+            const next = Math.min(1, prev + 0.05);
+            player.volume(next);
+            if (next > 0 && player.muted()) {
+                player.muted(false);
+            }
+            return next;
+        });
+    }, [player]);
+
+    const handleVolumeDown = useCallback(() => {
+        if (!player) return;
+        setVolume((prev) => {
+            const next = Math.max(0, prev - 0.05);
+            player.volume(next);
+            if (next === 0 && !player.muted()) {
+                player.muted(true);
+            }
+            return next;
+        });
+    }, [player]);
+
     usePlayerKeyboardControls({
         togglePlay,
         toggleMute,
@@ -473,6 +497,9 @@ const PlayerControls = ({
         togglePiP,
         handleSeekBackward,
         handleSeekForward,
+        handleVolumeUp,
+        handleVolumeDown,
+        onActivity: resetHideTimeout,
     });
 
     const introSegment = getMediaSegment('Intro');

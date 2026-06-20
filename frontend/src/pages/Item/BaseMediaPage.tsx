@@ -46,7 +46,7 @@ const BaseMediaPage = ({
                         className="w-full h-full object-cover blur-3xl scale-110 opacity-30"
                     />
                 </div>
-                <div className="absolute inset-0 bg-linear-to-b from-background/90 via-background/60 to-background" />
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 60%, #000 100%)' }} />
             </div>
         );
 
@@ -56,7 +56,7 @@ const BaseMediaPage = ({
     }, [itemId, name, setBackground]);
 
     return (
-        <div className="relative">
+        <div className="relative bg-black min-h-dvh isolate">
             <Button
                 variant="ghost"
                 size="icon"
@@ -81,9 +81,9 @@ const BaseMediaPage = ({
                             onError={() => setFailedBackdrop(true)}
                         />
                         {/* Left-to-right dark fade to ensure text readability */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/75 to-transparent" />
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, #000 0%, #000 40%, transparent 100%)' }} />
                         {/* Bottom-to-top fade to background */}
-                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background via-background/85 to-transparent" />
+                        <div className="absolute inset-x-0 bottom-0 h-1/2" style={{ background: 'linear-gradient(to top, #000 0%, #000 25%, transparent 100%)' }} />
                     </div>
                 )}
                 {failedBackdrop && (

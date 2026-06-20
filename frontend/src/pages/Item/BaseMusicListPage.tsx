@@ -6,7 +6,7 @@ import { ticksToReadableMusicTime, ticksToReadableTime } from '@/utils/timeConve
 import { Button } from '@/components/ui/button';
 import BaseMediaPage from './BaseMediaPage';
 import { Badge } from '@/components/ui/badge';
-import { EllipsisVertical, ImageOff, Info, ListMusic, Play } from 'lucide-react';
+import { EllipsisVertical, ImageOff, Info, ListMusic, Play, Trash2 } from 'lucide-react';
 import FavoriteButton from '@/components/FavoriteButton';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { AppConfig } from '@/hooks/api/useConfig';
@@ -29,6 +29,7 @@ import { usePlaylists } from '@/hooks/api/playlist/usePlaylists';
 import { useAddToPlaylist } from '@/hooks/api/playlist/useAddToPlaylist';
 import { useRemoveFromPlaylist } from '@/hooks/api/playlist/useRemoveFromPlaylist';
 import { useCurrentUser } from '@/hooks/api/useCurrentUser';
+import { useDeleteMedia } from '@/hooks/api/useDeleteMedia';
 import { useState, useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePlaylistPresence } from '@/hooks/api/playlist/usePlaylistPresence';
@@ -37,7 +38,15 @@ import ItemAdminButton from '@/components/ItemAdminButton';
 
 const MAX_ARTISTS_DISPLAYED = 5;
 
-const SongDropDown = ({ track, t }: { track: BaseItemDto; t: TFunction }) => {
+const SongDropDown = ({
+    track,
+    t,
+    onPlay,
+}: {
+    track: BaseItemDto;
+    t: TFunction;
+    onPlay?: () => void;
+}) => {
     const { data: currentUser } = useCurrentUser();
     const {
         data: playlists,
@@ -58,6 +67,10 @@ const SongDropDown = ({ track, t }: { track: BaseItemDto; t: TFunction }) => {
     const queryClient = useQueryClient();
     const [localPresence, setLocalPresence] = useState(presence || {});
     const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
+
+    const { deleteMedia } = useDeleteMedia(() => {
+        queryClient.invalidateQueries({ queryKey: ['albumTracks'] });
+    });
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -114,6 +127,10 @@ const SongDropDown = ({ track, t }: { track: BaseItemDto; t: TFunction }) => {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={onPlay}>
+                    <Play className="w-4 h-4 mr-1.5" />
+                    {t('play')}
+                </DropdownMenuItem>
                 <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                         <ListMusic /> {t('add_to_playlist')}
@@ -151,6 +168,20 @@ const SongDropDown = ({ track, t }: { track: BaseItemDto; t: TFunction }) => {
                         </DropdownMenuItem>
                     }
                 />
+                {currentUser?.Policy?.IsAdministrator && (
+                    <DropdownMenuItem
+                        className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                        onSelect={(e) => {
+                            e.preventDefault();
+                            if (window.confirm(t('media_delete_confirm', { title: track.Name }) || `Are you sure you want to delete ${track.Name}?`)) {
+                                deleteMedia(track.Id!);
+                            }
+                        }}
+                    >
+                        <Trash2 className="w-4 h-4 mr-1.5" />
+                        {t('delete')}
+                    </DropdownMenuItem>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     );
@@ -310,7 +341,7 @@ const BaseMusicListPage = ({ item, config, listType }: BaseMusicListPageProps) =
 
                         {/* Actions */}
                         <div className="flex flex-wrap gap-2.5 items-center mt-2">
-                            <Button onClick={handlePlayAlbum} className="cursor-pointer">
+                            <Button id="play-button" onClick={handlePlayAlbum} className="cursor-pointer">
                                 <Play className="w-4 h-4 fill-current mr-1.5" />
                                 {t('play')}
                             </Button>
@@ -400,7 +431,11 @@ const BaseMusicListPage = ({ item, config, listType }: BaseMusicListPageProps) =
                                                 className="ml-4"
                                                 onClick={(e) => e.stopPropagation()}
                                             >
-                                                <SongDropDown track={track} t={t} />
+                                                <SongDropDown
+                                                    track={track}
+                                                    t={t}
+                                                    onPlay={() => handleTrackClick(track, index)}
+                                                />
                                             </div>
                                         </div>
                                     );

@@ -1,5 +1,5 @@
 import type { BaseItemDto } from '@jellyfin/sdk/lib/generated-client/models';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Check, ChevronDown, Play } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { buildPlayerUrl } from '@/utils/playerUrl';
@@ -40,10 +40,20 @@ const SourcePickerButton = ({
 
     const hasMultipleSources = (mediaSources?.length ?? 0) > 1;
 
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const playBtn = document.getElementById('play-button');
+            if (playBtn) {
+                playBtn.focus({ preventScroll: true });
+            }
+        }, 50);
+        return () => clearTimeout(timer);
+    }, []);
+
     return (
         <ButtonGroup className="relative inline-flex hover:scale-105 active:scale-95 transition-transform duration-200 ease-out">
             <Button className={hasMultipleSources ? 'rounded-r-none w-min' : 'w-min'} asChild>
-                <Link to={buildPlayerUrl(selectedSource?.Id ?? itemId, location.pathname + location.search)}>
+                <Link id="play-button" to={buildPlayerUrl(selectedSource?.Id ?? itemId, location.pathname + location.search)}>
                     <Play />
                     {isCurrentlyPlaying ? resumeLabel : playLabel}
                 </Link>

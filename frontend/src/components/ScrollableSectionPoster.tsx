@@ -218,17 +218,17 @@ const ScrollableSectionPoster = ({
                 {config?.showPosterTags !== false && (
                     <div className="absolute top-1.5 left-1.5 flex flex-col items-start gap-1.5 z-30 pointer-events-none drop-shadow-md">
                         {item?.HasSubtitles && (
-                            <span className="bg-black/70 backdrop-blur-sm text-white/90 text-[9px] font-bold px-1.5 py-0.5 rounded-[4px] border border-white/20 uppercase tracking-wider">
+                            <span className="bg-black/85 text-white/90 text-[9px] font-bold px-1.5 py-0.5 rounded-[4px] border border-white/20 uppercase tracking-wider">
                                 CC
                             </span>
                         )}
                         {item?.MediaSources?.[0]?.MediaStreams?.some(s => s.Type === 'Video' && s.Height && s.Height >= 720) && (
-                            <span className="bg-black/70 backdrop-blur-sm text-brand font-bold text-[9px] px-1.5 py-0.5 rounded-[4px] border border-brand/30 uppercase tracking-wider">
+                            <span className="bg-black/85 text-brand font-bold text-[9px] px-1.5 py-0.5 rounded-[4px] border border-brand/30 uppercase tracking-wider">
                                 HD
                             </span>
                         )}
                         {item?.OfficialRating && (
-                            <span className="bg-black/70 backdrop-blur-sm text-white/90 text-[9px] font-bold px-1.5 py-0.5 rounded-[4px] border border-white/20 uppercase tracking-wider">
+                            <span className="bg-black/85 text-white/90 text-[9px] font-bold px-1.5 py-0.5 rounded-[4px] border border-white/20 uppercase tracking-wider">
                                 {item.OfficialRating}
                             </span>
                         )}

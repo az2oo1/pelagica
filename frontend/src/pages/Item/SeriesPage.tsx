@@ -3,7 +3,7 @@ import { useSeasons } from '@/hooks/api/useSeasons';
 import { getPrimaryImageUrl, getLogoUrl } from '@/utils/jellyfinUrls';
 import type { BaseItemDto } from '@jellyfin/sdk/lib/generated-client/models';
 import { ImageOff, Play } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
 import { buildPlayerUrl } from '@/utils/playerUrl';
 import {
@@ -75,6 +75,16 @@ const SeriesPage = ({ item, config }: SeriesPageProps) => {
         ) || [];
     const studios = item.Studios?.filter((studio) => studio.Name) || [];
 
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const playBtn = document.getElementById('play-button');
+            if (playBtn) {
+                playBtn.focus({ preventScroll: true });
+            }
+        }, 50);
+        return () => clearTimeout(timer);
+    }, [episodeToContinue]);
+
     return (
         <BaseMediaPage itemId={item.Id || ''} name={item.Name || ''} showLogo={false} topPadding={false}>
             <div className="pt-24 sm:pt-32 pb-12 px-4 sm:px-12 max-w-7xl mx-auto w-full flex flex-col gap-12">
@@ -130,7 +140,7 @@ const SeriesPage = ({ item, config }: SeriesPageProps) => {
                         <div className="flex flex-wrap gap-2.5 items-center mt-2">
                             {episodeToContinue ? (
                                 <Button className="w-fit bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-4 py-2 shadow-lg hover:scale-105 active:scale-95 transition-transform duration-200 ease-out" asChild>
-                                    <Link to={buildPlayerUrl(episodeToContinue.Id!, location.pathname + location.search)}>
+                                    <Link id="play-button" to={buildPlayerUrl(episodeToContinue.Id!, location.pathname + location.search)}>
                                         <Play className="mr-2 h-4 w-4 fill-current" />
                                         {episodeToContinue.UserData?.PlaybackPositionTicks
                                             ? t('continue_episode', {

@@ -26,6 +26,32 @@ const getFocusableElements = (container: HTMLElement | Document = document): HTM
 export const SpatialNavigation = () => {
     useEffect(() => {
         let lastMoveTime = 0;
+        let scrollAnimationId: number | null = null;
+        let currentTargetY = window.scrollY;
+
+        const smoothScrollToY = (targetY: number) => {
+            currentTargetY = targetY;
+            
+            if (scrollAnimationId !== null) {
+                return;
+            }
+
+            const step = () => {
+                const currentY = window.scrollY;
+                const diff = currentTargetY - currentY;
+                
+                if (Math.abs(diff) < 0.5) {
+                    window.scrollTo(window.scrollX, currentTargetY);
+                    scrollAnimationId = null;
+                } else {
+                    const nextY = currentY + diff * 0.22;
+                    window.scrollTo(window.scrollX, nextY);
+                    scrollAnimationId = requestAnimationFrame(step);
+                }
+            };
+            
+            scrollAnimationId = requestAnimationFrame(step);
+        };
 
         // Try focusing home button on mount
         const timer = setTimeout(() => {
@@ -36,8 +62,19 @@ export const SpatialNavigation = () => {
         }, 150);
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            const direction = e.key;
-            if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(direction)) {
+            const KEY_TO_DIRECTION: Record<string, string> = {
+                w: 'ArrowUp',
+                W: 'ArrowUp',
+                s: 'ArrowDown',
+                S: 'ArrowDown',
+                a: 'ArrowLeft',
+                A: 'ArrowLeft',
+                d: 'ArrowRight',
+                D: 'ArrowRight',
+            };
+
+            const direction = KEY_TO_DIRECTION[e.key];
+            if (!direction) {
                 return;
             }
 
@@ -48,18 +85,35 @@ export const SpatialNavigation = () => {
                 return;
             }
 
+            const scrollBehavior: ScrollBehavior = now - lastMoveTime < 250 ? 'auto' : 'smooth';
+
             const activeEl = document.activeElement as HTMLElement;
             
-            // Ignore key events if focus is inside editable fields or if select/dropdown contents are open (letting Radix handle listboxes/menus)
-            const shouldBypass = activeEl && (
+            // Ignore key events if focus is inside editable fields
+            const isEditable = activeEl && (
                 activeEl.tagName === 'INPUT' || 
                 activeEl.tagName === 'TEXTAREA' || 
                 activeEl.tagName === 'SELECT' || 
-                activeEl.isContentEditable ||
-                activeEl.closest('[role="menu"], [role="listbox"], [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="select-content"]') !== null
+                activeEl.isContentEditable
             );
+            if (isEditable) {
+                return;
+            }
+
+            const inMenuOrSelect = activeEl && activeEl.closest('[role="menu"], [role="listbox"], [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="select-content"]') !== null;
             const inTablist = activeEl && activeEl.closest('[role="tablist"], [data-slot="tabs-list"]') !== null;
-            if (shouldBypass || (inTablist && ['ArrowLeft', 'ArrowRight'].includes(direction))) {
+
+            if (inMenuOrSelect || (inTablist && ['ArrowLeft', 'ArrowRight'].includes(direction))) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const event = new KeyboardEvent('keydown', {
+                    key: direction,
+                    code: direction,
+                    bubbles: true,
+                    cancelable: true,
+                });
+                activeEl.dispatchEvent(event);
                 return;
             }
 
@@ -77,20 +131,28 @@ export const SpatialNavigation = () => {
                 const homeBtn = document.getElementById('home-nav-button') || focusables[0];
                 if (homeBtn) {
                     homeBtn.focus({ preventScroll: true });
-                    homeBtn.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center',
-                        inline: 'start',
-                    });
+                    
+                    const rect = homeBtn.getBoundingClientRect();
+                    const elementTop = rect.top + window.scrollY;
+                    const viewportHeight = window.innerHeight;
+                    const elementHeight = rect.height;
+                    const targetY = elementTop - (viewportHeight - elementHeight) / 2;
+                    const maxScrollY = document.documentElement.scrollHeight - viewportHeight;
+                    const clampedTargetY = Math.max(0, Math.min(maxScrollY, targetY));
+                    
+                    smoothScrollToY(clampedTargetY);
                     lastMoveTime = now;
                 }
                 return;
             }
 
+            const scrollY = window.scrollY;
+            const scrollX = window.scrollX;
+
             const activeRect = activeEl.getBoundingClientRect();
             const activeCenter = {
-                x: activeRect.left + activeRect.width / 2,
-                y: activeRect.top + activeRect.height / 2,
+                x: activeRect.left + activeRect.width / 2 + scrollX,
+                y: activeRect.top + activeRect.height / 2 + scrollY,
             };
 
             const activeInHeader = activeEl.closest('header') !== null;
@@ -117,8 +179,8 @@ export const SpatialNavigation = () => {
 
                 const candidateRect = candidate.getBoundingClientRect();
                 const candidateCenter = {
-                    x: candidateRect.left + candidateRect.width / 2,
-                    y: candidateRect.top + candidateRect.height / 2,
+                    x: candidateRect.left + candidateRect.width / 2 + scrollX,
+                    y: candidateRect.top + candidateRect.height / 2 + scrollY,
                 };
 
                 const dx = candidateCenter.x - activeCenter.x;
@@ -183,25 +245,39 @@ export const SpatialNavigation = () => {
                 }
             }
 
+            // If we moved vertically (Up/Down) from OUTSIDE a carousel into INSIDE a carousel,
+            // override bestCandidate to be the first focusable element (leftmost) of that carousel row.
+            if (bestCandidate && ['ArrowDown', 'ArrowUp'].includes(direction)) {
+                const activeCarousel = activeEl.closest('[data-slot="carousel-content"]');
+                const targetCarousel = bestCandidate.closest('[data-slot="carousel-content"]');
+                if (!activeCarousel && targetCarousel) {
+                    const carouselFocusables = getFocusableElements(targetCarousel as HTMLElement);
+                    if (carouselFocusables.length > 0) {
+                        bestCandidate = carouselFocusables[0];
+                    }
+                }
+            }
+
+            // Special rule: if moving down from the Home navigation button, and a play button exists on the page, target it.
+            if (direction === 'ArrowDown' && (activeEl.id === 'home-nav-button' || activeEl.closest('#home-nav-button'))) {
+                const playButton = document.getElementById('play-button');
+                if (playButton) {
+                    bestCandidate = playButton;
+                }
+            }
+
             if (bestCandidate) {
                 const element = bestCandidate as HTMLElement;
                 element.focus({ preventScroll: true });
                 
                 const isHorizontal = ['ArrowLeft', 'ArrowRight'].includes(direction);
                 
-                const isControl = element.tagName === 'BUTTON' || 
-                                  element.tagName === 'SELECT' || 
-                                  element.closest('[role="tablist"]') !== null ||
-                                  element.closest('header') !== null ||
-                                  element.closest('.sticky') !== null ||
-                                  element.closest('.fixed') !== null;
-
                 const inCarousel = element.closest('[data-slot="carousel"]') !== null;
 
                 if (!inCarousel || !isHorizontal) {
-                    if (isControl) {
+                    if (modalContainer) {
                         element.scrollIntoView({
-                            behavior: 'smooth',
+                            behavior: scrollBehavior,
                             block: isHorizontal ? 'nearest' : 'center',
                             inline: 'nearest',
                         });
@@ -209,20 +285,24 @@ export const SpatialNavigation = () => {
                         if (isHorizontal) {
                             const parent = element.parentElement;
                             if (parent && element === parent.firstElementChild) {
-                                parent.scrollTo({ left: 0, behavior: 'smooth' });
+                                parent.scrollTo({ left: 0, behavior: scrollBehavior });
                             } else {
                                 element.scrollIntoView({
-                                    behavior: 'smooth',
+                                    behavior: scrollBehavior,
                                     block: 'nearest',
                                     inline: 'start',
                                 });
                             }
                         } else {
-                            element.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'center',
-                                inline: 'nearest',
-                            });
+                            const rect = element.getBoundingClientRect();
+                            const elementTop = rect.top + window.scrollY;
+                            const elementHeight = rect.height;
+                            const viewportHeight = window.innerHeight;
+                            const targetY = elementTop - (viewportHeight - elementHeight) / 2;
+                            const maxScrollY = document.documentElement.scrollHeight - viewportHeight;
+                            const clampedTargetY = Math.max(0, Math.min(maxScrollY, targetY));
+                            
+                            smoothScrollToY(clampedTargetY);
                         }
                     }
                 }
@@ -261,7 +341,7 @@ export const SpatialNavigation = () => {
 
                     if (Math.abs(xVal) > AXIS_THRESHOLD) {
                         if (axesStates.x === 0) {
-                            dispatchFakeKeyEvent(xVal > 0 ? 'ArrowRight' : 'ArrowLeft');
+                            dispatchFakeKeyEvent(xVal > 0 ? 'd' : 'a');
                             axesStates.x = Math.sign(xVal);
                         }
                     } else {
@@ -270,7 +350,7 @@ export const SpatialNavigation = () => {
 
                     if (Math.abs(yVal) > AXIS_THRESHOLD) {
                         if (axesStates.y === 0) {
-                            dispatchFakeKeyEvent(yVal > 0 ? 'ArrowDown' : 'ArrowUp');
+                            dispatchFakeKeyEvent(yVal > 0 ? 's' : 'w');
                             axesStates.y = Math.sign(yVal);
                         }
                     } else {
@@ -293,16 +373,16 @@ export const SpatialNavigation = () => {
         const handleGamepadButtonDown = (buttonIndex: number) => {
             switch (buttonIndex) {
                 case 12:
-                    dispatchFakeKeyEvent('ArrowUp');
+                    dispatchFakeKeyEvent('w');
                     break;
                 case 13:
-                    dispatchFakeKeyEvent('ArrowDown');
+                    dispatchFakeKeyEvent('s');
                     break;
                 case 14:
-                    dispatchFakeKeyEvent('ArrowLeft');
+                    dispatchFakeKeyEvent('a');
                     break;
                 case 15:
-                    dispatchFakeKeyEvent('ArrowRight');
+                    dispatchFakeKeyEvent('d');
                     break;
                 case 0: {
                     const activeEl = document.activeElement as HTMLElement;
@@ -338,6 +418,9 @@ export const SpatialNavigation = () => {
             clearTimeout(timer);
             window.removeEventListener('keydown', handleKeyDown, { capture: true });
             cancelAnimationFrame(gamepadRequestRef);
+            if (scrollAnimationId !== null) {
+                cancelAnimationFrame(scrollAnimationId);
+            }
         };
     }, []);
 

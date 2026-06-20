@@ -76,8 +76,9 @@ export default function ItemContextMenu({ item, children }: ItemContextMenuProps
     // Filter relevant media item types
     const isVideo = type === 'Movie' || type === 'Episode' || type === 'Series';
     const isMusic = type === 'MusicAlbum' || type === 'Audio';
+    const isOtherSupport = type === 'MusicArtist' || type === 'Playlist' || type === 'BoxSet' || type === 'Person';
 
-    if (!itemId || (!isVideo && !isMusic)) {
+    if (!itemId || (!isVideo && !isMusic && !isOtherSupport)) {
         return <>{children}</>;
     }
 
@@ -201,26 +202,32 @@ export default function ItemContextMenu({ item, children }: ItemContextMenuProps
                 </ContextMenuTrigger>
                 <ContextMenuContent className="w-56">
                     {/* Basic playback & state options */}
-                    <ContextMenuItem onClick={handlePlay}>
-                        <Play />
-                        <span>Play</span>
-                    </ContextMenuItem>
-                    <ContextMenuItem onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleFavorite(!isFavorite);
-                    }}>
-                        <Heart className={cn(isFavorite ? 'text-red-500 fill-red-500' : 'text-muted-foreground')} />
-                        <span>{isFavorite ? 'Unfavorite' : 'Favorite'}</span>
-                    </ContextMenuItem>
-                    <ContextMenuItem onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleLike(!isLiked);
-                    }}>
-                        <Bookmark className={cn(isLiked ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground')} />
-                        <span>{isLiked ? 'Remove from Watchlist' : 'Add to Watchlist'}</span>
-                    </ContextMenuItem>
+                    {type !== 'Person' && (
+                        <ContextMenuItem onClick={handlePlay}>
+                            <Play />
+                            <span>Play</span>
+                        </ContextMenuItem>
+                    )}
+                    {type !== 'Person' && (
+                        <ContextMenuItem onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleFavorite(!isFavorite);
+                        }}>
+                            <Heart className={cn(isFavorite ? 'text-red-500 fill-red-500' : 'text-muted-foreground')} />
+                            <span>{isFavorite ? 'Unfavorite' : 'Favorite'}</span>
+                        </ContextMenuItem>
+                    )}
+                    {type !== 'Person' && (
+                        <ContextMenuItem onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleLike(!isLiked);
+                        }}>
+                            <Bookmark className={cn(isLiked ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground')} />
+                            <span>{isLiked ? 'Remove from Watchlist' : 'Add to Watchlist'}</span>
+                        </ContextMenuItem>
+                    )}
                     {isVideo && (
                         <ContextMenuItem onClick={(e) => {
                             e.preventDefault();

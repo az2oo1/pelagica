@@ -34,17 +34,20 @@ export function useLibraryItems(
             libraryId,
             options?.startIndex,
             options?.limit,
-            options?.sortBy,
+            options?.sortBy ? options.sortBy.join(',') : '',
             options?.sortOrder,
-            options?.includeItemTypes,
+            options?.includeItemTypes ? options.includeItemTypes.join(',') : '',
             options?.recursive,
         ],
         queryFn: async (): Promise<LibraryItemsResponse> => {
             const api = getApi();
             const itemsApi = getItemsApi(api);
+            const mappedSortBy = options?.sortBy
+                ? (options.sortBy.map((s) => (s === 'Name' ? 'SortName' : s)) as ItemSortBy[])
+                : (['SortName'] as ItemSortBy[]);
             const response = await itemsApi.getItems({
                 parentId: libraryId!,
-                sortBy: options?.sortBy || ['SortName'],
+                sortBy: mappedSortBy,
                 sortOrder: options?.sortOrder ? [options.sortOrder] : ['Ascending'],
                 limit: options?.limit ?? 50,
                 startIndex: options?.startIndex ?? 0,

@@ -607,20 +607,22 @@ const LibraryPage = () => {
 
                     return (
                         <TabsContent key={library.Id} value={library.Id ?? ''}>
-                            <LibraryContent
-                                key={`${library.Id}-${sortByParam}-${sortOrderParam}-${itemTypeParam}`}
-                                libraryId={library.Id}
-                                collectionType={library.CollectionType ?? undefined}
-                                sortBy={sortByParam}
-                                sortOrder={sortOrderParam}
-                                itemTypeFilter={itemTypeParam}
-                                page={pageParam}
-                                onPageChange={(nextPage) => {
-                                    const params = new URLSearchParams(searchParams);
-                                    params.set('page', String(nextPage));
-                                    setSearchParams(params);
-                                }}
-                            />
+                            {library.Id === activeLibraryId && (
+                                <LibraryContent
+                                    key={`${library.Id}-${sortByParam}-${sortOrderParam}-${itemTypeParam}`}
+                                    libraryId={library.Id}
+                                    collectionType={library.CollectionType ?? undefined}
+                                    sortBy={sortByParam}
+                                    sortOrder={sortOrderParam}
+                                    itemTypeFilter={itemTypeParam}
+                                    page={pageParam}
+                                    onPageChange={(nextPage) => {
+                                        const params = new URLSearchParams(searchParams);
+                                        params.set('page', String(nextPage));
+                                        setSearchParams(params);
+                                    }}
+                                />
+                            )}
                         </TabsContent>
                     );
                 })}

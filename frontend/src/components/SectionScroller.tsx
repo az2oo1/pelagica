@@ -106,7 +106,7 @@ export default function SectionScroller({
                 className={contentInset ? 'px-4 sm:px-12 w-full' : 'w-full'}
             >
                 <CarouselContent
-                    className="gap-4 -ml-0"
+                    className=""
                     onFocusCapture={(e) => {
                         if (globalIsMouseDown) return;
                         if (!api) return;
@@ -121,7 +121,7 @@ export default function SectionScroller({
                     }}
                 >
                     {items.map((item, index) => item && (
-                        <div key={index} className="shrink-0">
+                        <div key={index} className="shrink-0 pl-4">
                             {item}
                         </div>
                     ))}
