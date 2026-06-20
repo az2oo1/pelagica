@@ -76,12 +76,13 @@ export const StudioDisplay = ({
     const [isImageLoaded, setIsImageLoaded] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [isLogo, setIsLogo] = useState(item.thumbType === 'logo');
+    const [hasVideo, setHasVideo] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
 
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
-        if (isHovered) {
+        if (isHovered && hasVideo) {
             video.play().catch((err) => {
                 console.warn('Video play failed:', err);
             });
@@ -89,13 +90,13 @@ export const StudioDisplay = ({
             video.pause();
             video.currentTime = 0;
         }
-    }, [isHovered]);
+    }, [isHovered, hasVideo]);
 
     return (
         <Link
             to={`/studio/${item.id}?name=${encodeURIComponent(item.name)}`}
             key={item.id}
-            className={'group w-min min-w-36 lg:min-w-48 2xl:min-w-64 outline-none focus:outline-none focus-visible:outline-none'}
+            className={'group w-full block min-w-36 lg:min-w-48 2xl:min-w-64 outline-none focus:outline-none focus-visible:outline-none'}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onFocus={() => setIsHovered(true)}
@@ -125,7 +126,7 @@ export const StudioDisplay = ({
                                 isImageLoaded
                                     ? 'blur-0 opacity-100 scale-100'
                                     : 'blur-md opacity-0 scale-95',
-                                isImageLoaded && isHovered ? 'scale-110 opacity-0' : 'scale-100 opacity-100'
+                                isImageLoaded && isHovered && hasVideo ? 'scale-110 opacity-0' : 'scale-100 opacity-100'
                             )}
                             onLoad={(e) => {
                                 setIsImageLoaded(true);
@@ -146,12 +147,14 @@ export const StudioDisplay = ({
                     src={`/api/studios/search/video?name=${encodeURIComponent(item.name)}`}
                     className={cn(
                         "absolute inset-0 w-full h-full object-cover z-30 pointer-events-none transition-all duration-500",
-                        isHovered ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+                        isHovered && hasVideo ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
                     )}
                     preload="auto"
                     loop
                     muted
                     playsInline
+                    onCanPlay={() => setHasVideo(true)}
+                    onError={() => setHasVideo(false)}
                 />
             </div>
         </Link>
@@ -178,7 +181,7 @@ const StudiosRow = ({ title, limit }: StudiosRowProps) => {
                 studios
                     ? studios.map((studio) => <StudioDisplay item={studio} key={studio.id} />)
                     : Array.from({ length: 6 }).map((_, i) => (
-                          <div key={i} className="w-min min-w-36 lg:min-w-48 2xl:min-w-64">
+                          <div key={i} className="w-full min-w-36 lg:min-w-48 2xl:min-w-64">
                               <Skeleton className="w-full aspect-video rounded-md" />
                           </div>
                       ))

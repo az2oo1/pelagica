@@ -253,7 +253,7 @@ const ItemsListPage = ({
 
             {!loadingItems && !error && items && (
                 <>
-                    <ul className={`gw-full gap-4 grid ${gridCols}`}>
+                    <ul className={`w-full gap-4 grid ${gridCols}`}>
                         {items?.items?.map((child) => (
                             <LibraryItem
                                 key={child.Id}

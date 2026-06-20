@@ -45,6 +45,7 @@ const SourcePickerButton = ({
             const playBtn = document.getElementById('play-button');
             if (playBtn) {
                 playBtn.focus({ preventScroll: true });
+                window.scrollTo({ top: 0, behavior: 'instant' });
             }
         }, 50);
         return () => clearTimeout(timer);

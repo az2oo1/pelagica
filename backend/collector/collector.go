@@ -50,7 +50,11 @@ func getInstanceIdFile() string {
 }
 
 func getStatsConsentFile() string {
-	return os.Getenv("COLLECTOR_STATS_CONSENT_FILE")
+	file := os.Getenv("COLLECTOR_STATS_CONSENT_FILE")
+	if file == "" {
+		file = "../config/stats_consent"
+	}
+	return file
 }
 
 // hasStatsConsent determines whether the user has consented to anonymous statistics collection

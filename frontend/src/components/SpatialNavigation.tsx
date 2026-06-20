@@ -194,6 +194,14 @@ export const SpatialNavigation = () => {
             candidates.forEach(candidate => {
                 if (candidate === activeEl) return;
 
+                if (['ArrowUp', 'ArrowDown'].includes(direction)) {
+                    const activeCarousel = activeEl.closest('[data-slot="carousel-content"]');
+                    const candidateCarousel = candidate.closest('[data-slot="carousel-content"]');
+                    if (activeCarousel && activeCarousel === candidateCarousel) {
+                        return;
+                    }
+                }
+
                 const candidateRect = candidate.getBoundingClientRect();
                 const candidateCenter = {
                     x: candidateRect.left + candidateRect.width / 2 + scrollX,
@@ -381,10 +389,12 @@ export const SpatialNavigation = () => {
         const dispatchFakeKeyEvent = (key: string) => {
             const event = new KeyboardEvent('keydown', {
                 key,
+                code: key,
                 bubbles: true,
                 cancelable: true,
             });
-            window.dispatchEvent(event);
+            const activeEl = document.activeElement || document.body;
+            activeEl.dispatchEvent(event);
         };
 
         const handleGamepadButtonDown = (buttonIndex: number) => {
@@ -409,7 +419,14 @@ export const SpatialNavigation = () => {
                     break;
                 }
                 case 1: {
-                    window.history.back();
+                    const isMenuOpen = document.querySelector('[role="menu"], [role="listbox"], [data-slot="dropdown-menu-content"], [data-slot="select-content"], [data-slot="dialog-content"]') !== null;
+                    if (isMenuOpen) {
+                        dispatchFakeKeyEvent('Escape');
+                    } else {
+                        if (window.location.pathname !== '/') {
+                            window.history.back();
+                        }
+                    }
                     break;
                 }
                 case 2: { // Square (Playstation) / X (Xbox)
