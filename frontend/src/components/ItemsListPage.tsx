@@ -27,7 +27,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ButtonGroup } from '@/components/ui/button-group';
-import LibraryItem from '../Library/LibraryItem';
+import LibraryItem from '../pages/Library/LibraryItem';
 
 const ITEM_ROWS = 5;
 const DEFAULT_SORT_BY: ItemSortBy = 'Name';

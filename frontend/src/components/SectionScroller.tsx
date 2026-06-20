@@ -120,7 +120,11 @@ export default function SectionScroller({
                         }
                     }}
                 >
-                    {items}
+                    {items.map((item, index) => item && (
+                        <div key={index} className="shrink-0">
+                            {item}
+                        </div>
+                    ))}
                 </CarouselContent>
             </Carousel>
         </div>

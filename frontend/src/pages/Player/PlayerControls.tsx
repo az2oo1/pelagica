@@ -524,7 +524,7 @@ const PlayerControls = ({
                 }}
                 onMouseMove={handleMouseMove}
             >
-                <Button variant="ghost" onClick={handleBack}>
+                <Button variant="ghost" onClick={handleBack} tabIndex={-1}>
                     <ArrowLeft />
                 </Button>
                 <h1>{title}</h1>

@@ -78,7 +78,7 @@ const PhotoViewerPage = () => {
                         pointerEvents: showControls ? 'auto' : 'none',
                     }}
                 >
-                    <Button variant="ghost" onClick={handleBack}>
+                    <Button variant="ghost" onClick={handleBack} tabIndex={-1}>
                         <ArrowLeft />
                     </Button>
                     <span className="text-sm">{item?.Name}</span>

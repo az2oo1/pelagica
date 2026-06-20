@@ -38,7 +38,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import type { BaseItemDto, BaseItemKind, CollectionType, ItemSortBy, SortOrder } from '@jellyfin/sdk/lib/generated-client/models';
+import type { CollectionType, ItemSortBy, SortOrder } from '@jellyfin/sdk/lib/generated-client/models';
 import { ButtonGroup } from '@/components/ui/button-group';
 import LibraryItem from './LibraryItem';
 import HomeVideoGrid, { TARGET_ROW_HEIGHT } from './HomeVideoGrid';
@@ -89,10 +89,6 @@ function getPageSize(width: number, collectionType: CollectionType): number {
     return getColumnCount(width, collectionType) * ITEM_ROWS;
 }
 
-function getDetailLine(item: BaseItemDto): string | undefined {
-    if (item.Type === 'MusicAlbum') return item.AlbumArtist || undefined;
-    return item.PremiereDate ? new Date(item.PremiereDate).getFullYear().toString() : undefined;
-}
 
 const SKELETON_ASPECT_RATIOS = [1.5, 0.75, 1.78, 1, 1.33, 0.67, 2, 1.2, 1.5, 0.8, 1, 1.78];
 

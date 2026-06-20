@@ -75,7 +75,7 @@ const ThemeBrowserPage = () => {
         <Page title={t('theme_browser')}>
             <div className="flex items-center gap-3 mb-3 mt-2">
                 <Button variant="outline" size="icon-sm" asChild>
-                    <Link to="/settings?tab=themes">
+                    <Link to="/settings?tab=themes" tabIndex={-1}>
                         <ArrowLeft />
                     </Link>
                 </Button>

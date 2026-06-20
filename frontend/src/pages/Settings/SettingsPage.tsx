@@ -56,7 +56,7 @@ import { Link, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { IconPicker, type IconName } from '../../components/ui/icon-picker';
 import { DynamicIcon } from 'lucide-react/dynamic';
-import { getAccessToken, getPassword, setPassword, getServerUrl } from '@/utils/localstorageCredentials';
+import { getPassword, setPassword } from '@/utils/localstorageCredentials';
 import { getAuthorizationHeader } from '@/api/getApi';
 import FileDropInput from '@/components/FileDropInput';
 import { useStatsConsent } from '../../hooks/api/statsConsent/useStatsConsent';
