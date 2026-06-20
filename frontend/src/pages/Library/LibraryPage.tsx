@@ -338,11 +338,12 @@ const LibraryPage = () => {
 
     const itemTypeParam = useMemo(() => {
         const urlParam = searchParams.get('itemType');
-        if (urlParam) return urlParam;
+        if (urlParam && urlParam !== 'all') return urlParam;
         if (isMusicLibrary && typeof window !== 'undefined') {
-            return localStorage.getItem('pelagica_library_item_type_filter') || 'all';
+            const saved = localStorage.getItem('pelagica_library_item_type_filter');
+            return (saved && saved !== 'all') ? saved : 'MusicAlbum';
         }
-        return 'all';
+        return 'MusicAlbum';
     }, [searchParams, isMusicLibrary]);
 
     // Single useEffect to fill missing URL parameters with defaults initially
@@ -361,7 +362,7 @@ const LibraryPage = () => {
             if (!hasSortBy) nextParams.set('sortBy', sortByParam);
             if (!hasSortOrder) nextParams.set('sortOrder', sortOrderParam);
 
-            if (isMusicLibrary && !searchParams.has('itemType') && itemTypeParam !== 'all') {
+            if (isMusicLibrary && !searchParams.has('itemType')) {
                 nextParams.set('itemType', itemTypeParam);
             }
 
@@ -375,8 +376,8 @@ const LibraryPage = () => {
 
         const nextIsMusic = nextLibrary.CollectionType === 'music';
         const savedType = nextIsMusic && typeof window !== 'undefined'
-            ? localStorage.getItem('pelagica_library_item_type_filter') || 'all'
-            : 'all';
+            ? localStorage.getItem('pelagica_library_item_type_filter') || 'MusicAlbum'
+            : 'MusicAlbum';
 
         let savedSortBy = typeof window !== 'undefined'
             ? (localStorage.getItem('pelagica_library_sort_by') as ItemSortBy) || 'Name'
@@ -412,7 +413,7 @@ const LibraryPage = () => {
             sortBy: savedSortBy,
             sortOrder: savedSortOrder,
         };
-        if (savedType !== 'all') {
+        if (nextIsMusic) {
             params.itemType = savedType;
         }
         setSearchParams(params);
@@ -458,11 +459,7 @@ const LibraryPage = () => {
                                     localStorage.setItem('pelagica_library_item_type_filter', value);
                                     const params = new URLSearchParams(searchParams);
                                     params.set('page', '0');
-                                    if (value === 'all') {
-                                        params.delete('itemType');
-                                    } else {
-                                        params.set('itemType', value);
-                                    }
+                                    params.set('itemType', value);
                                     setSearchParams(params);
                                 }}
                                 value={itemTypeParam}
@@ -475,9 +472,6 @@ const LibraryPage = () => {
                                     <SelectValue placeholder="Type" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">
-                                        {t('type_all', { defaultValue: 'All Types' })}
-                                    </SelectItem>
                                     <SelectItem value="MusicAlbum">
                                         {t('type_albums', { defaultValue: 'Albums' })}
                                     </SelectItem>

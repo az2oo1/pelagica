@@ -73,8 +73,10 @@ const VideoPlayer = ({
 }: VideoPlayerProps) => {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const playerRef = useRef<VideoJsPlayer | null>(null);
+    const initialStartTicksRef = useRef(startTicks);
     const hasSeekedRef = useRef(false);
     const [isBuffering, setIsBuffering] = useState(true);
+    const [isPlayerInitialized, setIsPlayerInitialized] = useState(false);
     const [prevSrc, setPrevSrc] = useState(src);
 
     if (src !== prevSrc) {
@@ -119,9 +121,7 @@ const VideoPlayer = ({
 
         player.ready(() => {
             onReady?.(player);
-            player.play()?.catch((error) => {
-                console.error('Error attempting to play:', error);
-            });
+            setIsPlayerInitialized(true);
         });
 
         return () => {
@@ -134,27 +134,13 @@ const VideoPlayer = ({
                 p.off('loadstart', handleLoadStart);
                 p.dispose();
                 playerRef.current = null;
+                setIsPlayerInitialized(false);
             }
         };
     }, [onReady, poster]);
 
     useEffect(() => {
-        if (!playerRef.current) return;
-        if (!startTicks || startTicks <= 0) return;
-        if (hasSeekedRef.current) return;
-
-        const seconds = startTicks / 10_000_000;
-
-        playerRef.current.currentTime(seconds);
-        hasSeekedRef.current = true;
-    }, [startTicks]);
-
-    useEffect(() => {
-        hasSeekedRef.current = false;
-    }, [src]);
-
-    useEffect(() => {
-        if (!playerRef.current || !src) return;
+        if (!playerRef.current || !isPlayerInitialized || !src) return;
 
         const player = playerRef.current;
 
@@ -163,18 +149,30 @@ const VideoPlayer = ({
         if (isAudioSwitchRef.current) {
             seekTo = player.currentTime() || null;
             isAudioSwitchRef.current = false;
+        } else if (!hasSeekedRef.current && initialStartTicksRef.current > 0) {
+            seekTo = initialStartTicksRef.current / 10_000_000;
+            hasSeekedRef.current = true;
         }
 
         player.pause();
         player.src({ src, type: srcType });
         player.load();
 
-        if (seekTo !== null) {
-            player.currentTime(seekTo);
-        }
+        const applySeekAndPlay = () => {
+            if (seekTo !== null && seekTo > 0) {
+                player.currentTime(seekTo);
+            }
+            player.play()?.catch((err) => {
+                console.error('[VideoPlayer] Play error:', err);
+            });
+        };
 
-        player.play()?.catch(console.error);
-    }, [src, srcType, isAudioSwitchRef]);
+        if (player.readyState() >= 1) {
+            applySeekAndPlay();
+        } else {
+            player.one('loadedmetadata', applySeekAndPlay);
+        }
+    }, [src, srcType, isAudioSwitchRef, isPlayerInitialized]);
 
     useEffect(() => {
         if (!playerRef.current) return;

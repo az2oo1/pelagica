@@ -29,6 +29,9 @@ const WatchedStateBadge = ({ item, show }: WatchedStateBadgeProps) => {
     }
 
     if (playedItem) {
+        if (item?.Type === 'Audio' || item?.Type === 'MusicAlbum' || item?.Type === 'MusicArtist') {
+            return null;
+        }
         return (
             <div className="absolute top-1.5 right-1.5 bg-green-600 text-white text-xs font-semibold rounded-full w-6 h-6 flex items-center justify-center z-30">
                 <Check className="w-3 h-3" />

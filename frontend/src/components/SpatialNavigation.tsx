@@ -100,19 +100,36 @@ export const SpatialNavigation = () => {
                 return;
             }
 
-            const inMenuOrSelect = activeEl && activeEl.closest('[role="menu"], [role="listbox"], [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="select-content"]') !== null;
+            const isMenuOpen = document.querySelector('[role="menu"], [role="listbox"], [data-slot="dropdown-menu-content"], [data-slot="select-content"]') !== null;
+            const inMenuOrSelect = activeEl && (
+                isMenuOpen ||
+                activeEl.closest('[role="menu"], [role="listbox"], [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="select-content"]') !== null
+            );
             const inTablist = activeEl && activeEl.closest('[role="tablist"], [data-slot="tabs-list"]') !== null;
 
             if (inMenuOrSelect || (inTablist && ['ArrowLeft', 'ArrowRight'].includes(direction))) {
                 e.preventDefault();
                 e.stopPropagation();
                 
+                const keyCodeMap: Record<string, number> = {
+                    ArrowLeft: 37,
+                    ArrowUp: 38,
+                    ArrowRight: 39,
+                    ArrowDown: 40,
+                };
+                const keyCode = keyCodeMap[direction];
+
                 const event = new KeyboardEvent('keydown', {
                     key: direction,
                     code: direction,
+                    keyCode: keyCode,
+                    which: keyCode,
                     bubbles: true,
                     cancelable: true,
                 });
+                Object.defineProperty(event, 'keyCode', { value: keyCode });
+                Object.defineProperty(event, 'which', { value: keyCode });
+                
                 activeEl.dispatchEvent(event);
                 return;
             }
