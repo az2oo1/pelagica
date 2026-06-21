@@ -214,12 +214,13 @@ body {
 /* Custom Subtitle Styling & Positioning */
 .video-js .vjs-text-track-display {
     font-size: var(--subtitle-size, 100%) !important;
+    bottom: 3% !important;
 }
 
 .video-js .vjs-text-track-cue,
 .video-js .vjs-text-track-cue * {
     font-size: 1em !important;
-    line-height: inherit !important;
+    line-height: 1.4 !important;
 }
 
 /* Optimize skeleton performance and opacity bounds */

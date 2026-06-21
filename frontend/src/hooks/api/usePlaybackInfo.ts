@@ -109,7 +109,8 @@ export function usePlaybackInfo(
             return { playMethod, mediaSource: source, playSessionId };
         },
         enabled: !!itemId,
-        staleTime: 30_000,
+        staleTime: Infinity,
+        gcTime: 0,
         refetchOnWindowFocus: false,
         refetchOnReconnect: false,
         ...getRetryConfig(),

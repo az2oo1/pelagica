@@ -112,12 +112,18 @@ const VideoPlayer = ({
         const handleSeeking = () => setIsBuffering(true);
         const handleSeeked = () => setIsBuffering(false);
         const handleLoadStart = () => setIsBuffering(true);
+        const handleCanPlay = () => setIsBuffering(false);
+        const handlePause = () => setIsBuffering(false);
+        const handleError = () => setIsBuffering(false);
 
         player.on('waiting', handleWaiting);
         player.on('playing', handlePlaying);
         player.on('seeking', handleSeeking);
         player.on('seeked', handleSeeked);
         player.on('loadstart', handleLoadStart);
+        player.on('canplay', handleCanPlay);
+        player.on('pause', handlePause);
+        player.on('error', handleError);
 
         player.ready(() => {
             onReady?.(player);
@@ -132,6 +138,9 @@ const VideoPlayer = ({
                 p.off('seeking', handleSeeking);
                 p.off('seeked', handleSeeked);
                 p.off('loadstart', handleLoadStart);
+                p.off('canplay', handleCanPlay);
+                p.off('pause', handlePause);
+                p.off('error', handleError);
                 p.dispose();
                 playerRef.current = null;
                 setIsPlayerInitialized(false);
@@ -139,10 +148,16 @@ const VideoPlayer = ({
         };
     }, [onReady, poster]);
 
+    const loadedSrcRef = useRef<string | null>(null);
+
     useEffect(() => {
         if (!playerRef.current || !isPlayerInitialized || !src) return;
 
         const player = playerRef.current;
+
+        // Prevent setting the exact same source again to avoid AbortError during re-renders or StrictMode
+        if (loadedSrcRef.current === src) return;
+        loadedSrcRef.current = src;
 
         let seekTo: number | null = null;
 
@@ -164,6 +179,7 @@ const VideoPlayer = ({
             }
             player.play()?.catch((err) => {
                 console.error('[VideoPlayer] Play error:', err);
+                setIsBuffering(false);
             });
         };
 

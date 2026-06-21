@@ -31,3 +31,4 @@ branding
 
 .task/
 /backend/cache/
+tmp_puppeteer/test.js
