@@ -237,3 +237,16 @@ body {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
     will-change: opacity;
 }
+
+/* For poster cards/episodes link wrapping, highlight the outline when focused */
+a:focus-visible .poster-card-outline,
+a:focus-within .poster-card-outline {
+    border-color: color-mix(in srgb, var(--foreground) 80%, transparent) !important;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--foreground) 80%, transparent) !important;
+}
+
+a:focus-visible img.poster-image,
+a:focus-within img.poster-image {
+    opacity: 0.9 !important;
+    transform: scale(1.05) !important;
+}

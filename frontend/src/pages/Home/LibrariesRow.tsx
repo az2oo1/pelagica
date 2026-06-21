@@ -19,7 +19,7 @@ const LibraryDisplay = ({ item }: { item: BaseItemDto }) => {
         <Link
             to={`/library?library=${item.Id}`}
             key={item.Id}
-            className={'group w-min min-w-48 lg:min-w-64 2xl:min-w-80'}
+            className={'group block outline-none focus:outline-none focus-visible:outline-none w-min min-w-48 lg:min-w-64 2xl:min-w-80'}
         >
             <div className="relative w-full aspect-video rounded-md overflow-hidden">
                 {imageError ? (

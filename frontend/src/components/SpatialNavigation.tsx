@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 const getFocusableElements = (container: HTMLElement | Document = document): HTMLElement[] => {
     // Select all links, buttons, inputs, selects, textareas, and tabindex focusable elements.
     // We explicitly allow [role="tab"] and [data-slot="tabs-trigger"] to match roving-tabindex tab triggers (which can have tabindex="-1" when inactive).
-    const selector = 'a[href]:not([tabindex="-1"]), button:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"]), [role="tab"], [data-slot="tabs-trigger"], [role="tablist"] button, [data-slot="tabs-list"] button';
+    const selector = 'a[href]:not([tabindex="-1"]), button:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"]), [role="tab"], [data-slot="tabs-trigger"], [role="tablist"] button, [data-slot="tabs-list"] button, [data-slot="pagination-link"]:not([tabindex="-1"])';
     const elements = Array.from(container.querySelectorAll(selector)) as HTMLElement[];
     
     // Filter to only visible elements
@@ -64,14 +64,15 @@ export const SpatialNavigation = () => {
 
             const activeEl = document.activeElement as HTMLElement;
             
-            // Ignore key events if focus is inside editable fields
+            // Ignore key events if focus is inside editable fields or actively scrubbing a player progress bar
+            const isScrubbing = activeEl && activeEl.getAttribute('data-scrubbing') === 'true';
             const isEditable = activeEl && (
                 activeEl.tagName === 'INPUT' || 
                 activeEl.tagName === 'TEXTAREA' || 
                 activeEl.tagName === 'SELECT' || 
                 activeEl.isContentEditable
             );
-            if (isEditable) {
+            if (isEditable || isScrubbing) {
                 return;
             }
 
@@ -417,10 +418,28 @@ export const SpatialNavigation = () => {
                     const activeEl = document.activeElement as HTMLElement;
                     if (activeEl) {
                         activeEl.click();
+                        
+                        // Dispatch synthetic Enter event for components like Radix UI 
+                        // DropdownMenuTrigger which ignore programmatic .click()
+                        const enterEvent = new KeyboardEvent('keydown', {
+                            key: 'Enter',
+                            code: 'Enter',
+                            keyCode: 13,
+                            which: 13,
+                            bubbles: true,
+                            cancelable: true,
+                        });
+                        activeEl.dispatchEvent(enterEvent);
                     }
                     break;
                 }
                 case 1: {
+                    const activeEl = document.activeElement as HTMLElement;
+                    const isScrubbing = activeEl && activeEl.getAttribute('data-scrubbing') === 'true';
+                    if (isScrubbing) {
+                        dispatchFakeKeyEvent('Escape');
+                        break;
+                    }
                     const isMenuOpen = document.querySelector('[role="menu"], [role="listbox"], [data-slot="dropdown-menu-content"], [data-slot="select-content"], [data-slot="dialog-content"]') !== null;
                     if (isMenuOpen) {
                         dispatchFakeKeyEvent('Escape');

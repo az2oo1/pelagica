@@ -24,6 +24,8 @@ export function useItem(
                     'ChildCount',
                     'RecursiveItemCount',
                     'ParentId',
+                    'SeriesId' as any,
+                    'SeriesName' as any,
                     'MediaStreams',
                     'ProductionLocations',
                     'RemoteTrailers',

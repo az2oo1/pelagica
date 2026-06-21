@@ -5,7 +5,7 @@ import { useCurrentUser } from '@/hooks/api/useCurrentUser';
 import { PageBackgroundProvider } from '@/context/PageBackgroundProvider';
 import { usePageBackground } from '@/hooks/usePageBackground';
 import MusicPlayerBar from '@/components/MusicPlayerBar';
-import FullPageLoader from '@/components/FullPageLoader';
+import SplashScreen from '@/components/SplashScreen';
 import { logout } from '@/api/logout';
 import FullPageError from '@/components/FullPageError';
 import TopBar from '@/components/TopBar';
@@ -65,8 +65,24 @@ const PageContent = ({
         };
     }, [isLoading]);
 
-    if (requiresAuth && isLoading && showLoader)
-        return <FullPageLoader message="Loading user information..." />;
+    if (requiresAuth && isLoading && showLoader) {
+        const theme = localStorage.getItem('vite-ui-theme') || 'system';
+        const isDark =
+            theme === 'system'
+                ? window.matchMedia('(prefers-color-scheme: dark)').matches
+                : theme === 'dark';
+        const defaultLogo = isDark ? '/logo.svg' : '/logo-dark.svg';
+        const activeLogo = (isDark ? config?.logoDarkUrl : config?.logoLightUrl) || defaultLogo;
+
+        return (
+            <SplashScreen
+                progress={100}
+                message="Loading user information..."
+                logoSrc={activeLogo}
+                fadeOut={false}
+            />
+        );
+    }
 
     if (requiresAuth && isError)
         return (

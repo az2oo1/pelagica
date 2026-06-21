@@ -29,7 +29,7 @@ const PeopleRow = memo(
                 <SectionScroller
                     title={title}
                     items={Array.from({ length: 10 }, (_, i) => (
-                        <div key={i} className="group min-w-30 w-30">
+                        <div key={i} className="group min-w-32 w-32 lg:min-w-36 lg:w-36">
                             <div className="aspect-square w-full rounded-full overflow-hidden">
                                 <Skeleton className="h-full w-full" />
                             </div>
@@ -49,7 +49,7 @@ const PeopleRow = memo(
                         <Link
                             to={`/person/${person.Id}`}
                             key={`${person.Id}-${person.Type}-${person.Role}`}
-                            className="group min-w-30 w-30 block outline-none focus:outline-none focus-visible:outline-none"
+                            className="group min-w-32 w-32 lg:min-w-36 lg:w-36 block outline-none focus:outline-none focus-visible:outline-none"
                         >
                             <div className="relative aspect-square w-full rounded-full overflow-hidden">
                                 {profilePictureErrors[person.Id!] ? (

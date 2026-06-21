@@ -171,6 +171,10 @@ const PlayerControls = ({
     const { data: session } = useSession(item.Id, showStats);
     const { config } = useConfig();
 
+    const [isProgressBarFocused, setIsProgressBarFocused] = useState(false);
+    const [isScrubbing, setIsScrubbing] = useState(false);
+    const [scrubbingTime, setScrubbingTime] = useState<number>(0);
+
     const handleBack = () => {
         if (backUrl) {
             navigate(backUrl);
@@ -204,56 +208,66 @@ const PlayerControls = ({
         }
     }, [isPlaying]);
 
+    const resetHideTimeout = useCallback(() => {
+        setShowControls(true);
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+        }
+        if (isScrubbing) return;
+        hideTimeoutRef.current = setTimeout(() => {
+            setShowControls(false);
+        }, 3000);
+    }, [isScrubbing]);
+
     useEffect(() => {
-        if (config.showPauseOverlay === false) {
+        if (isScrubbing) {
+            setShowControls(true);
+            if (hideTimeoutRef.current) {
+                clearTimeout(hideTimeoutRef.current);
+                hideTimeoutRef.current = null;
+            }
+        } else {
+            resetHideTimeout();
+        }
+    }, [isScrubbing, resetHideTimeout]);
+
+    useEffect(() => {
+        if (config.showPauseOverlay === false || isPlaying) {
             setShowPauseOverlay(false);
             if (pauseTimerRef.current) {
                 clearTimeout(pauseTimerRef.current);
                 pauseTimerRef.current = null;
             }
-            return;
         }
+    }, [isPlaying, config.showPauseOverlay]);
 
-        if (isPlaying) {
-            setShowPauseOverlay(false);
-            if (pauseTimerRef.current) {
-                clearTimeout(pauseTimerRef.current);
-                pauseTimerRef.current = null;
-            }
-            return;
-        }
-
+    useEffect(() => {
         const handleActivity = () => {
-            resetPauseTimer();
+            if (!isPlaying) {
+                resetPauseTimer();
+            }
+            resetHideTimeout();
         };
 
         window.addEventListener('mousemove', handleActivity);
-        window.addEventListener('keydown', handleActivity);
+        window.addEventListener('keydown', handleActivity, { capture: true });
         window.addEventListener('click', handleActivity);
         window.addEventListener('touchstart', handleActivity);
 
-        resetPauseTimer();
+        if (!isPlaying) {
+            resetPauseTimer();
+        }
 
         return () => {
             window.removeEventListener('mousemove', handleActivity);
-            window.removeEventListener('keydown', handleActivity);
+            window.removeEventListener('keydown', handleActivity, { capture: true });
             window.removeEventListener('click', handleActivity);
             window.removeEventListener('touchstart', handleActivity);
             if (pauseTimerRef.current) {
                 clearTimeout(pauseTimerRef.current);
             }
         };
-    }, [isPlaying, resetPauseTimer, config.showPauseOverlay]);
-
-    const resetHideTimeout = useCallback(() => {
-        setShowControls(true);
-        if (hideTimeoutRef.current) {
-            clearTimeout(hideTimeoutRef.current);
-        }
-        hideTimeoutRef.current = setTimeout(() => {
-            setShowControls(false);
-        }, 3000);
-    }, []);
+    }, [isPlaying, resetPauseTimer, resetHideTimeout]);
 
     const handleMouseMove = () => {
         resetHideTimeout();
@@ -370,6 +384,7 @@ const PlayerControls = ({
 
     const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
         if (!player || !progressRef.current) return;
+        if (e.clientX === 0 && e.clientY === 0) return;
         const rect = progressRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const percentage = x / rect.width;
@@ -377,6 +392,7 @@ const PlayerControls = ({
     };
 
     const handleProgressHover = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (isScrubbing) return;
         if (!progressRef.current || !duration) return;
         const rect = progressRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
@@ -386,8 +402,76 @@ const PlayerControls = ({
     };
 
     const handleProgressLeave = () => {
+        if (isScrubbing) return;
         setHoverTime(null);
     };
+
+    const handleProgressBarKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!isScrubbing) {
+                setIsScrubbing(true);
+                setScrubbingTime(clampedCurrentTime);
+                setHoverTime(clampedCurrentTime);
+                if (progressRef.current && duration) {
+                    const rect = progressRef.current.getBoundingClientRect();
+                    setHoverPosition((clampedCurrentTime / duration) * rect.width);
+                }
+            } else {
+                player?.currentTime(scrubbingTime);
+                setIsScrubbing(false);
+                setHoverTime(null);
+            }
+        }
+    };
+
+    useEffect(() => {
+        if (!isScrubbing || !player || !duration) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (['ArrowLeft', 'ArrowRight', 'a', 'A', 'd', 'D', 'Enter', ' ', 'Escape'].includes(e.key)) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            const step = Math.max(5, duration * 0.01); // 1% or 5s
+
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                setScrubbingTime((prev) => {
+                    const next = Math.min(duration, prev + step);
+                    setHoverTime(next);
+                    if (progressRef.current) {
+                        const rect = progressRef.current.getBoundingClientRect();
+                        setHoverPosition((next / duration) * rect.width);
+                    }
+                    return next;
+                });
+            } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                setScrubbingTime((prev) => {
+                    const next = Math.max(0, prev - step);
+                    setHoverTime(next);
+                    if (progressRef.current) {
+                        const rect = progressRef.current.getBoundingClientRect();
+                        setHoverPosition((next / duration) * rect.width);
+                    }
+                    return next;
+                });
+            } else if (e.key === 'Enter' || e.key === ' ') {
+                player.currentTime(scrubbingTime);
+                setIsScrubbing(false);
+                setHoverTime(null);
+            } else if (e.key === 'Escape') {
+                setIsScrubbing(false);
+                setHoverTime(null);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown, { capture: true });
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown, { capture: true });
+        };
+    }, [isScrubbing, duration, player, scrubbingTime]);
 
     const togglePiP = useCallback(async () => {
         if (!player) return;
@@ -773,30 +857,62 @@ const PlayerControls = ({
                 {/* Progress bar */}
                 <div
                     ref={progressRef}
-                    className="w-full h-3 rounded cursor-pointer mb-4 transition-all relative"
+                    id="player-progress-bar"
+                    tabIndex={0}
+                    data-scrubbing={isScrubbing}
+                    onFocus={() => setIsProgressBarFocused(true)}
+                    onBlur={() => {
+                        setIsProgressBarFocused(false);
+                        if (!isScrubbing) {
+                            setHoverTime(null);
+                        }
+                    }}
+                    onKeyDown={handleProgressBarKeyDown}
+                    className="w-full h-3 rounded cursor-pointer mb-4 transition-all relative outline-none"
                     onClick={handleProgressClick}
                     onMouseMove={handleProgressHover}
                     onMouseLeave={handleProgressLeave}
                 >
-                    {/* Actually visible bar that's smaller for better asthetics */}
-                    <div className="absolute top-1 left-0 w-full h-1 bg-gray-600 rounded pointer-events-none z-0" />
+                    {/* Actually visible bar that's smaller for better aesthetics */}
+                    <div
+                        className={`absolute left-0 w-full rounded pointer-events-none z-0 transition-all ${
+                            (isProgressBarFocused || isScrubbing) ? "top-0.5 h-2 bg-gray-500" : "top-1 h-1 bg-gray-600"
+                        }`}
+                    />
                     {/* buffered progress */}
                     <div
-                        className="absolute top-1 left-0 h-1 bg-gray-500 rounded pointer-events-none z-5"
+                        className={`absolute left-0 rounded pointer-events-none z-5 transition-all ${
+                            (isProgressBarFocused || isScrubbing) ? "top-0.5 h-2 bg-gray-400" : "top-1 h-1 bg-gray-500"
+                        }`}
                         style={{ width: `${bufferedPercentage}%` }}
                     />
                     {/** Bar that shows the hovered time */}
                     <div
-                        className="absolute top-1 left-0 h-1 bg-white/20 rounded pointer-events-none z-10"
+                        className={`absolute left-0 rounded pointer-events-none z-10 transition-all ${
+                            (isProgressBarFocused || isScrubbing) ? "top-0.5 h-2 bg-white/30" : "top-1 h-1 bg-white/20"
+                        }`}
                         style={{
                             width: hoverTime !== null ? `${(hoverTime / duration) * 100}%` : '0%',
                         }}
                     />
                     {/* current progress */}
                     <div
-                        className="absolute top-1 left-0 h-1 bg-white rounded pointer-events-none z-15"
+                        className={`absolute left-0 rounded pointer-events-none z-15 transition-all ${
+                            (isProgressBarFocused || isScrubbing) ? "top-0.5 h-2 bg-brand" : "top-1 h-1 bg-white"
+                        }`}
                         style={{ width: `${progressPercentage}%` }}
                     />
+                    {/* Circle Playhead Handle */}
+                    {(isProgressBarFocused || isScrubbing) && (
+                        <div
+                            className="absolute top-0 w-3 h-3 bg-white rounded-full -translate-x-1/2 pointer-events-none z-20 shadow-md transition-all scale-110"
+                            style={{
+                                left: isScrubbing
+                                    ? `${(scrubbingTime / duration) * 100}%`
+                                    : `${progressPercentage}%`,
+                            }}
+                        />
+                    )}
                     {/* Hover preview */}
                     {hoverTime !== null &&
                         item.Trickplay &&
