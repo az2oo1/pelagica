@@ -445,6 +445,7 @@ const PlayerControls = ({
                         const rect = progressRef.current.getBoundingClientRect();
                         setHoverPosition((next / duration) * rect.width);
                     }
+                    player.currentTime(next);
                     return next;
                 });
             } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
@@ -455,6 +456,7 @@ const PlayerControls = ({
                         const rect = progressRef.current.getBoundingClientRect();
                         setHoverPosition((next / duration) * rect.width);
                     }
+                    player.currentTime(next);
                     return next;
                 });
             } else if (e.key === 'Enter' || e.key === ' ') {
