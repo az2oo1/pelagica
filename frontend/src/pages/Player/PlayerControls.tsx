@@ -119,6 +119,7 @@ interface PlayerControlsProps {
     nextItem?: BaseItemDto | null;
     srcUrl: string;
     containerRef: React.RefObject<HTMLDivElement | null>;
+    timeOffset?: number;
 }
 
 const PlayerControls = ({
@@ -139,6 +140,7 @@ const PlayerControls = ({
     nextItem,
     srcUrl,
     containerRef,
+    timeOffset = 0,
 }: PlayerControlsProps) => {
     const { t } = useTranslation('player');
     const [isPlaying, setIsPlaying] = useState(false);
@@ -388,16 +390,16 @@ const PlayerControls = ({
         const rect = progressRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const percentage = x / rect.width;
-        player.currentTime(percentage * duration);
+        player.currentTime(percentage * displayDuration - timeOffset);
     };
 
     const handleProgressHover = (e: React.MouseEvent<HTMLDivElement>) => {
         if (isScrubbing) return;
-        if (!progressRef.current || !duration) return;
+        if (!progressRef.current || !displayDuration) return;
         const rect = progressRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const percentage = Math.max(0, Math.min(1, x / rect.width));
-        setHoverTime(percentage * duration);
+        setHoverTime(percentage * displayDuration);
         setHoverPosition(x);
     };
 
@@ -414,12 +416,12 @@ const PlayerControls = ({
                 setIsScrubbing(true);
                 setScrubbingTime(clampedCurrentTime);
                 setHoverTime(clampedCurrentTime);
-                if (progressRef.current && duration) {
+                if (progressRef.current && displayDuration) {
                     const rect = progressRef.current.getBoundingClientRect();
-                    setHoverPosition((clampedCurrentTime / duration) * rect.width);
+                    setHoverPosition((clampedCurrentTime / displayDuration) * rect.width);
                 }
             } else {
-                player?.currentTime(scrubbingTime);
+                player?.currentTime(scrubbingTime - timeOffset);
                 setIsScrubbing(false);
                 setHoverTime(null);
             }
@@ -427,7 +429,7 @@ const PlayerControls = ({
     };
 
     useEffect(() => {
-        if (!isScrubbing || !player || !duration) return;
+        if (!isScrubbing || !player || !displayDuration) return;
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if (['ArrowLeft', 'ArrowRight', 'a', 'A', 'd', 'D', 'Enter', ' ', 'Escape'].includes(e.key)) {
@@ -435,17 +437,17 @@ const PlayerControls = ({
                 e.stopPropagation();
             }
 
-            const step = Math.max(5, duration * 0.01); // 1% or 5s
+            const step = Math.max(5, displayDuration * 0.01); // 1% or 5s
 
             if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
                 setScrubbingTime((prev) => {
-                    const next = Math.min(duration, prev + step);
+                    const next = Math.min(displayDuration, prev + step);
                     setHoverTime(next);
                     if (progressRef.current) {
                         const rect = progressRef.current.getBoundingClientRect();
-                        setHoverPosition((next / duration) * rect.width);
+                        setHoverPosition((next / displayDuration) * rect.width);
                     }
-                    player.currentTime(next);
+                    player.currentTime(next - timeOffset);
                     return next;
                 });
             } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
@@ -454,13 +456,13 @@ const PlayerControls = ({
                     setHoverTime(next);
                     if (progressRef.current) {
                         const rect = progressRef.current.getBoundingClientRect();
-                        setHoverPosition((next / duration) * rect.width);
+                        setHoverPosition((next / displayDuration) * rect.width);
                     }
-                    player.currentTime(next);
+                    player.currentTime(next - timeOffset);
                     return next;
                 });
             } else if (e.key === 'Enter' || e.key === ' ') {
-                player.currentTime(scrubbingTime);
+                player.currentTime(scrubbingTime - timeOffset);
                 setIsScrubbing(false);
                 setHoverTime(null);
             } else if (e.key === 'Escape') {
@@ -588,28 +590,32 @@ const PlayerControls = ({
         onActivity: resetHideTimeout,
     });
 
+    const displayCurrentTime = currentTime + timeOffset;
+    const displayDuration = timeOffset > 0 && item.RunTimeTicks ? item.RunTimeTicks / 10_000_000 : duration;
+    const displayBufferedTime = bufferedTime + timeOffset;
+
     const introSegment = getMediaSegment('Intro');
     const showSkipIntroButton =
         introSegment &&
         introSegment.StartTicks != null &&
         introSegment.EndTicks != null &&
-        currentTime > ticksToSeconds(introSegment.StartTicks) &&
-        currentTime < ticksToSeconds(introSegment.EndTicks);
+        displayCurrentTime > ticksToSeconds(introSegment.StartTicks) &&
+        displayCurrentTime < ticksToSeconds(introSegment.EndTicks);
 
     const outtroSegment = getMediaSegment('Outro');
     const showSkipOutroButton =
         outtroSegment &&
         outtroSegment.StartTicks != null &&
         outtroSegment.EndTicks != null &&
-        currentTime > ticksToSeconds(outtroSegment.StartTicks) &&
-        currentTime < ticksToSeconds(outtroSegment.EndTicks);
+        displayCurrentTime > ticksToSeconds(outtroSegment.StartTicks) &&
+        displayCurrentTime < ticksToSeconds(outtroSegment.EndTicks);
 
-    const clampedCurrentTime = duration > 0 ? Math.min(currentTime, duration) : currentTime;
+    const clampedCurrentTime = displayDuration > 0 ? Math.min(displayCurrentTime, displayDuration) : displayCurrentTime;
     const progressPercentage = Math.min(
         100,
-        duration > 0 ? (clampedCurrentTime / duration) * 100 : 0
+        displayDuration > 0 ? (clampedCurrentTime / displayDuration) * 100 : 0
     );
-    const bufferedPercentage = Math.min(100, duration > 0 ? (bufferedTime / duration) * 100 : 0);
+    const bufferedPercentage = Math.min(100, displayDuration > 0 ? (displayBufferedTime / displayDuration) * 100 : 0);
 
     const title =
         item.Type === 'Episode'
@@ -619,13 +625,13 @@ const PlayerControls = ({
     const audioStreams = item.MediaStreams?.filter((s) => s.Type === 'Audio') || [];
     const subtitleStreams = item.MediaStreams?.filter((s) => s.Type === 'Subtitle') || [];
 
-    const timeRemaining = duration - currentTime;
+    const timeRemaining = displayDuration - displayCurrentTime;
     const showNextItemPrompt =
         nextItem &&
-        duration > 0 &&
+        displayDuration > 0 &&
         !dismissedNextItemPrompt &&
         (timeRemaining <= 30 || // 30 sec remaining
-            (duration > 0 && currentTime / duration >= 0.95)); // or 95% complete
+            (displayDuration > 0 && displayCurrentTime / displayDuration >= 0.95)); // or 95% complete
 
     return (
         <>
@@ -1007,7 +1013,7 @@ const PlayerControls = ({
                             </Button>
                         )}
                         <div className="text-sm ml-2">
-                            {formatPlayTime(clampedCurrentTime)} / {formatPlayTime(duration)}
+                            {formatPlayTime(clampedCurrentTime)} / {formatPlayTime(displayDuration)}
                         </div>
                     </div>
 
@@ -1247,12 +1253,12 @@ const PlayerControls = ({
                                 {/* Progress text details */}
                                 <div className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm text-white/60 font-medium tracking-wide">
                                     <span>•</span>
-                                    <span>{formatPlayTime(clampedCurrentTime)} / {formatPlayTime(duration)}</span>
+                                    <span>{formatPlayTime(clampedCurrentTime)} / {formatPlayTime(displayDuration)}</span>
                                     <span>•</span>
                                     <span>{progressPercentage.toFixed(0)}% watched</span>
                                     <span>•</span>
                                     <span>Ends at {(() => {
-                                        const remainingTicks = (duration - clampedCurrentTime) * 10000000;
+                                        const remainingTicks = (displayDuration - clampedCurrentTime) * 10000000;
                                         return getEndsAt(remainingTicks).toLocaleTimeString([], {
                                             hour: '2-digit',
                                             minute: '2-digit',

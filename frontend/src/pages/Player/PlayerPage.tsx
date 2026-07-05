@@ -134,8 +134,9 @@ const PlayerPage = () => {
             mediaSourceId: playbackInfo.mediaSource.Id || undefined,
             container: playbackInfo.mediaSource.Container?.split(',')[0] || undefined,
             transcodingUrl: playbackInfo.mediaSource.TranscodingUrl,
+            startTimeTicks: item?.UserData?.PlaybackPositionTicks || 0,
         });
-    }, [itemId, playbackInfo, audioTrackIndex]);
+    }, [itemId, playbackInfo, audioTrackIndex, item]);
 
     const { reportProgress } = useReportPlaybackProgress();
     const { startPlayback } = usePlaybackStart();
@@ -192,6 +193,13 @@ const PlayerPage = () => {
 
     const startTicks = item?.UserData?.PlaybackPositionTicks || 0;
 
+    const timeOffset = useMemo(() => {
+        if (playbackInfo?.playMethod === 'Transcode' && startTicks > 0) {
+            return startTicks / 10_000_000;
+        }
+        return 0;
+    }, [playbackInfo, startTicks]);
+
     const handleToggleFullscreen = () => {
         if (!containerRef.current) return;
         if (document.fullscreenElement) {
@@ -223,8 +231,9 @@ const PlayerPage = () => {
 
             try {
                 const currentTime = player.currentTime() || 0;
-                if (currentTime <= PLAYBACK_PROGRESS_REPORT_MIN_PLAYTIME_SECONDS) return;
-                const positionTicks = Math.floor(currentTime * 10000000); // Convert to ticks
+                const actualTime = currentTime + timeOffset;
+                if (actualTime <= PLAYBACK_PROGRESS_REPORT_MIN_PLAYTIME_SECONDS) return;
+                const positionTicks = Math.floor(actualTime * 10000000); // Convert to ticks
                 const isPaused = player.paused();
                 const volumeLevel = (player.volume() ?? 1) * 100;
                 const isMuted = player.muted();
@@ -387,6 +396,7 @@ const PlayerPage = () => {
                 nextItem={adjacentItems?.nextItem}
                 srcUrl={streamResult.url}
                 containerRef={containerRef}
+                timeOffset={timeOffset}
             />
         </div>
     );

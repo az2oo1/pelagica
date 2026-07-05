@@ -171,6 +171,7 @@ export function getVideoStreamUrl(
     options: {
         playSessionId?: string;
         audioStreamIndex?: number;
+        startTimeTicks?: number;
     }
 ) {
     try {
@@ -202,6 +203,9 @@ export function getVideoStreamUrl(
             url.searchParams.append('PlaySessionId', options.playSessionId);
         if (options.audioStreamIndex !== undefined) {
             url.searchParams.append('AudioStreamIndex', options.audioStreamIndex.toString());
+        }
+        if (options.startTimeTicks !== undefined && options.startTimeTicks > 0) {
+            url.searchParams.append('StartTimeTicks', options.startTimeTicks.toString());
         }
 
         return url.toString();
@@ -255,6 +259,7 @@ export function getDirectStreamUrl(
         container?: string;
         audioStreamIndex?: number;
         playSessionId?: string;
+        startTimeTicks?: number;
     }
 ) {
     try {
@@ -272,6 +277,9 @@ export function getDirectStreamUrl(
             url.searchParams.append('PlaySessionId', options.playSessionId);
         if (options.audioStreamIndex !== undefined)
             url.searchParams.append('AudioStreamIndex', options.audioStreamIndex.toString());
+        if (options.startTimeTicks !== undefined && options.startTimeTicks > 0) {
+            url.searchParams.append('StartTimeTicks', options.startTimeTicks.toString());
+        }
 
         return url.toString();
     } catch {
@@ -299,6 +307,7 @@ export function getPlaybackStreamUrl(
         mediaSourceId?: string;
         container?: string;
         transcodingUrl?: string | null;
+        startTimeTicks?: number;
     }
 ): PlaybackStreamResult {
     const creds = resolveCredentials();
@@ -312,6 +321,7 @@ export function getPlaybackStreamUrl(
                 container,
                 audioStreamIndex: options.audioStreamIndex,
                 playSessionId: options.playSessionId,
+                startTimeTicks: options.startTimeTicks,
             }),
             mimeType,
         };
@@ -322,8 +332,13 @@ export function getPlaybackStreamUrl(
         const path = options.transcodingUrl.startsWith('/')
             ? options.transcodingUrl
             : `/${options.transcodingUrl}`;
+        let url = `${base}${path}`;
+        if (options.startTimeTicks !== undefined && options.startTimeTicks > 0) {
+            const separator = url.includes('?') ? '&' : '?';
+            url = `${url}${separator}StartTimeTicks=${options.startTimeTicks}`;
+        }
         return {
-            url: `${base}${path}`,
+            url,
             mimeType: 'application/x-mpegURL',
         };
     }
@@ -332,6 +347,7 @@ export function getPlaybackStreamUrl(
         url: getVideoStreamUrl(itemId, {
             audioStreamIndex: options.audioStreamIndex,
             playSessionId: options.playSessionId,
+            startTimeTicks: options.startTimeTicks,
         }),
         mimeType: 'application/x-mpegURL',
     };

@@ -60,6 +60,34 @@ const adjustTrackCues = (track: any, delay: number) => {
     }, 100);
 };
 
+const registerVhsHook = () => {
+    const Vhs = (videojs as any).Vhs;
+    if (Vhs && Vhs.xhr) {
+        if (typeof Vhs.xhr.onRequest === 'function') {
+            if (!(Vhs.xhr as any)._hasPelagicaHook) {
+                (Vhs.xhr as any)._hasPelagicaHook = true;
+                Vhs.xhr.onRequest((options: any) => {
+                    if (options.uri) {
+                        try {
+                            const isPlaylist = options.uri.includes('.m3u8');
+                            if (!isPlaylist && options.uri.includes('StartTimeTicks=')) {
+                                const urlParts = options.uri.split('?');
+                                if (urlParts.length === 2) {
+                                    const params = urlParts[1].split('&').filter((p: string) => !p.startsWith('StartTimeTicks='));
+                                    options.uri = urlParts[0] + '?' + params.join('&');
+                                }
+                            }
+                        } catch {
+                            // Ignore URL parsing errors
+                        }
+                    }
+                    return options;
+                });
+            }
+        }
+    }
+};
+
 const VideoPlayer = ({
     src,
     srcType = 'application/x-mpegURL',
@@ -78,11 +106,71 @@ const VideoPlayer = ({
     const [isBuffering, setIsBuffering] = useState(true);
     const [isPlayerInitialized, setIsPlayerInitialized] = useState(false);
     const [prevSrc, setPrevSrc] = useState(src);
+    const [resolvedSubtitles, setResolvedSubtitles] = useState<SubtitleTrack[]>([]);
 
     if (src !== prevSrc) {
         setPrevSrc(src);
         setIsBuffering(true);
     }
+
+    // Resolve subtitle VTT files: fetch, strip UTF-8 BOM, and create Blob URL to prevent Video.js/browser parsing errors
+    useEffect(() => {
+        if (!subtitles || subtitles.length === 0) {
+            setResolvedSubtitles([]);
+            return;
+        }
+
+        let active = true;
+        const objectUrls: string[] = [];
+
+        const resolveTracks = async () => {
+            const resolved = await Promise.all(
+                subtitles.map(async (track): Promise<SubtitleTrack> => {
+                    if (track.src && (track.src.includes('/Subtitles/') || track.src.includes('.vtt'))) {
+                        try {
+                            const res = await window.fetch(track.src);
+                            if (res.ok) {
+                                let text = await res.text();
+                                if (text.startsWith('\uFEFF')) {
+                                    text = text.substring(1);
+                                }
+                                // Remove invalid region header blocks that cause Video.js/native ParsingError
+                                const lines = text.split(/\r?\n/);
+                                const cleanedLines = lines.filter(line => !line.trim().startsWith('Region:'));
+                                text = cleanedLines.join('\n');
+
+                                const blob = new Blob([text], { type: 'text/vtt;charset=utf-8' });
+                                const blobUrl = URL.createObjectURL(blob);
+                                objectUrls.push(blobUrl);
+                                return {
+                                    ...track,
+                                    src: blobUrl,
+                                };
+                            }
+                        } catch (error) {
+                            console.error('[VideoPlayer] Failed to load/clean subtitle:', track.src, error);
+                        }
+                    }
+                    return track;
+                })
+            );
+
+            if (active) {
+                setResolvedSubtitles(resolved);
+            }
+        };
+
+        resolveTracks();
+
+        return () => {
+            active = false;
+            objectUrls.forEach((url) => {
+                try {
+                    URL.revokeObjectURL(url);
+                } catch {}
+            });
+        };
+    }, [subtitles]);
 
     useEffect(() => {
         if (!videoRef.current) return;
@@ -126,6 +214,7 @@ const VideoPlayer = ({
         player.on('error', handleError);
 
         player.ready(() => {
+            registerVhsHook();
             onReady?.(player);
             setIsPlayerInitialized(true);
         });
@@ -155,17 +244,19 @@ const VideoPlayer = ({
 
         const player = playerRef.current;
 
-        // Prevent setting the exact same source again to avoid AbortError during re-renders or StrictMode
         if (loadedSrcRef.current === src) return;
         loadedSrcRef.current = src;
 
+        const isTranscodedOffset = src.includes('StartTimeTicks=');
         let seekTo: number | null = null;
 
         if (isAudioSwitchRef.current) {
             seekTo = player.currentTime() || null;
             isAudioSwitchRef.current = false;
-        } else if (!hasSeekedRef.current && initialStartTicksRef.current > 0) {
+        } else if (!hasSeekedRef.current && initialStartTicksRef.current > 0 && !isTranscodedOffset) {
             seekTo = initialStartTicksRef.current / 10_000_000;
+            hasSeekedRef.current = true;
+        } else if (!hasSeekedRef.current) {
             hasSeekedRef.current = true;
         }
 
@@ -197,29 +288,50 @@ const VideoPlayer = ({
 
         const addSubtitles = (activeIndex: number | null) => {
             const tracks = player.remoteTextTracks();
-            while (tracks.tracks_.length > 0) {
-                const track = tracks.tracks_[0];
-                if (track) player.removeRemoteTextTrack(track);
+            let needsRebuild = false;
+            if (tracks.tracks_.length !== (resolvedSubtitles?.length || 0)) {
+                needsRebuild = true;
+            } else {
+                for (let i = 0; i < tracks.tracks_.length; i++) {
+                    if (tracks.tracks_[i].src !== resolvedSubtitles[i].src) {
+                        needsRebuild = true;
+                        break;
+                    }
+                }
             }
 
-            if (subtitles && subtitles.length > 0) {
-                subtitles.forEach((subtitle, index) => {
-                    player.addRemoteTextTrack(
-                        {
-                            kind: 'subtitles',
-                            src: subtitle.src,
-                            srclang: subtitle.srclang,
-                            label: subtitle.label,
-                            default: subtitle.default,
-                        },
-                        false // Don't add to DOM manually
-                    );
+            if (needsRebuild) {
+                while (tracks.tracks_.length > 0) {
+                    const track = tracks.tracks_[0];
+                    if (track) player.removeRemoteTextTrack(track);
+                }
 
-                    const addedTrack = player.remoteTextTracks().tracks_[index];
-                    if (addedTrack) {
-                        addedTrack.mode = index === activeIndex ? 'showing' : 'disabled';
+                if (resolvedSubtitles && resolvedSubtitles.length > 0) {
+                    resolvedSubtitles.forEach((subtitle, index) => {
+                        player.addRemoteTextTrack(
+                            {
+                                kind: 'subtitles',
+                                src: subtitle.src,
+                                srclang: subtitle.srclang,
+                                label: subtitle.label,
+                                default: subtitle.default,
+                            },
+                            false
+                        );
+
+                        const addedTrack = player.remoteTextTracks().tracks_[index];
+                        if (addedTrack) {
+                            addedTrack.mode = index === activeIndex ? 'showing' : 'disabled';
+                        }
+                    });
+                }
+            } else {
+                for (let i = 0; i < tracks.tracks_.length; i++) {
+                    const mode = i === activeIndex ? 'showing' : 'disabled';
+                    if (tracks.tracks_[i].mode !== mode) {
+                        tracks.tracks_[i].mode = mode;
                     }
-                });
+                }
             }
         };
 
@@ -235,7 +347,7 @@ const VideoPlayer = ({
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
-    }, [subtitles, src, subtitleTrackIndex]);
+    }, [resolvedSubtitles, src, subtitleTrackIndex]);
 
     useEffect(() => {
         if (!playerRef.current) return;
@@ -250,7 +362,7 @@ const VideoPlayer = ({
         if (activeTrack) {
             adjustTrackCues(activeTrack, subtitleDelay);
         }
-    }, [subtitleDelay, subtitleTrackIndex, subtitles, src]);
+    }, [subtitleDelay, subtitleTrackIndex, resolvedSubtitles, src]);
 
     return (
         <div
@@ -261,9 +373,9 @@ const VideoPlayer = ({
                 ref={videoRef}
                 className="video-js"
                 data-testid="video-player"
+                crossOrigin="anonymous"
                 style={{ maxWidth: '100%', maxHeight: '100%', width: '100%', height: '100%' }}
             >
-                <track kind="captions" srcLang="en" label="English" />
             </video>
             {isBuffering && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-opacity duration-300 pointer-events-none">

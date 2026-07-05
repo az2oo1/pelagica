@@ -9,7 +9,7 @@ export interface StudioSummary {
     thumbType?: string;
 }
 
-export function useStudiosByItemCount(limit: number = 20, hasThumb: boolean = true) {
+export function useStudiosByItemCount(limit: number = 20, hasThumb: boolean = false) {
     return useQuery({
         queryKey: ['studios', 'byItemCount', limit, hasThumb],
         queryFn: async () => {
