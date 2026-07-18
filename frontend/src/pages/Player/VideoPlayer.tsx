@@ -69,8 +69,8 @@ const registerVhsHook = () => {
                 Vhs.xhr.onRequest((options: any) => {
                     if (options.uri) {
                         try {
-                            const isPlaylist = options.uri.includes('.m3u8');
-                            if (!isPlaylist && options.uri.includes('StartTimeTicks=')) {
+                            const isSegment = /\.(ts|mp4|m4s|key|aac|vtt|srt|webm|webma)($|\?)/i.test(options.uri);
+                            if (isSegment && options.uri.includes('StartTimeTicks=')) {
                                 const urlParts = options.uri.split('?');
                                 if (urlParts.length === 2) {
                                     const params = urlParts[1].split('&').filter((p: string) => !p.startsWith('StartTimeTicks='));
