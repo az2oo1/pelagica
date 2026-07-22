@@ -298,25 +298,27 @@ const SeriesPage = ({ item, config }: SeriesPageProps) => {
                         title={
                             <div className="flex flex-wrap items-center gap-4">
                                 <h3 className="text-3xl font-bold">{t('episodes')}</h3>
-                                <Select
-                                    value={effectiveSelectedSeason || ''}
-                                    onValueChange={(value) => setSelectedSeason(value || null)}
-                                    disabled={isLoading || !seasons || seasons.length === 0}
-                                >
-                                    <SelectTrigger className="w-48 bg-white/5 border-white/10 text-white backdrop-blur-xs">
-                                        <SelectValue placeholder={t('select_season')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {seasons?.map((season) => (
-                                            <SelectItem
-                                                key={season.Id}
-                                                value={season.Id || ''}
-                                            >
-                                                {season.Name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                {seasons && seasons.length > 1 && (
+                                    <Select
+                                        value={effectiveSelectedSeason || ''}
+                                        onValueChange={(value) => setSelectedSeason(value || null)}
+                                        disabled={isLoading || !seasons || seasons.length === 0}
+                                    >
+                                        <SelectTrigger className="w-48 bg-white/5 border-white/10 text-white backdrop-blur-xs">
+                                            <SelectValue placeholder={t('select_season')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {seasons?.map((season) => (
+                                                <SelectItem
+                                                    key={season.Id}
+                                                    value={season.Id || ''}
+                                                >
+                                                    {season.Name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
                             </div>
                         }
                         seasonsLoading={isLoading}

@@ -386,7 +386,8 @@ export function getSubtitleUrl(
 
 
 export function getStudioImageUrl(studioName: string) {
-    return `/api/studios/${encodeURIComponent(studioName)}/thumb`;
+    const server = getServerUrl() || '';
+    return `/api/studios/${encodeURIComponent(studioName)}/thumb?server=${encodeURIComponent(server)}`;
 }
 
 export function getTrickplayImageUrl(itemId: string, width: number, imageIndex: number) {
