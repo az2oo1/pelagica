@@ -221,10 +221,11 @@ const MediaStreamInfo = ({ stream, t }: { stream: MediaStream; t: TFunction }) =
 
 interface MediaInfoDialogProps {
     streams: MediaStream[];
+    path?: string;
     trigger?: React.ReactNode;
 }
 
-const MediaInfoDialog = ({ streams, trigger }: MediaInfoDialogProps) => {
+const MediaInfoDialog = ({ streams, path, trigger }: MediaInfoDialogProps) => {
     const { t } = useTranslation('item');
     const [selectedStreamIndex, setSelectedStreamIndex] = useState<number>(0);
 
@@ -252,6 +253,11 @@ const MediaInfoDialog = ({ streams, trigger }: MediaInfoDialogProps) => {
                 <DialogHeader>
                     <DialogTitle>{t('media_info')}</DialogTitle>
                 </DialogHeader>
+                {path && (
+                    <div className="mb-4 pb-4 border-b border-border">
+                        <DetailBox label={t('file_path', { defaultValue: 'File Path' })} value={path} />
+                    </div>
+                )}
                 <Select
                     onValueChange={(value) => setSelectedStreamIndex(parseInt(value, 10))}
                     value={selectedStreamIndex.toString()}
