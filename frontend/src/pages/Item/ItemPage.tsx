@@ -15,6 +15,7 @@ import MusicAlbumPage from './MusicAlbumPage';
 import PlaylistPage from './PlaylistPage';
 import type { BaseItemKind } from '@jellyfin/sdk/lib/generated-client/models';
 import MusicArtistPage from './MusicArtistPage';
+import AudioPage from './AudioPage';
 
 const ItemPageSkeleton = memo(({ isSquare = false }: { isSquare?: boolean }) => {
     return (
@@ -81,7 +82,7 @@ const ItemPageSkeleton = memo(({ isSquare = false }: { isSquare?: boolean }) => 
 
 ItemPageSkeleton.displayName = 'ItemPageSkeleton';
 
-const FULL_PAGE_ITEM_TYPES: BaseItemKind[] = ['Movie', 'Series', 'Episode', 'Season', 'BoxSet', 'MusicAlbum'];
+const FULL_PAGE_ITEM_TYPES: BaseItemKind[] = ['Movie', 'Series', 'Episode', 'Season', 'BoxSet', 'MusicAlbum', 'Audio'];
 
 const REDIRECT_ITEM_TYPES: Partial<Record<BaseItemKind, string>> = {
     Person: '/person',
@@ -111,7 +112,7 @@ const ItemPage = () => {
             overlayHeader={isFullPageItem}
             pagePadding={!isFullPageItem}
         >
-            {(isLoading || configLoading) && <ItemPageSkeleton isSquare={item?.Type === 'MusicAlbum' || item?.Type === 'MusicArtist'} />}
+            {(isLoading || configLoading) && <ItemPageSkeleton isSquare={item?.Type === 'MusicAlbum' || item?.Type === 'MusicArtist' || item?.Type === 'Audio'} />}
             {error && <p>Error loading item details.</p>}
             {item &&
                 (() => {
@@ -132,6 +133,8 @@ const ItemPage = () => {
                             return <PlaylistPage item={item} config={config} />;
                         case 'MusicArtist':
                             return <MusicArtistPage item={item} config={config} />;
+                        case 'Audio':
+                            return <AudioPage item={item} config={config} />;
                         default:
                             return (
                                 <p>
