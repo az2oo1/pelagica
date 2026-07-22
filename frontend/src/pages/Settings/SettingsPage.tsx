@@ -19,6 +19,7 @@ import { useState, useEffect, memo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
     Check,
     Trash2,
@@ -1074,6 +1075,19 @@ const SettingsPage = () => {
                     <h1 className="mb-2 mt-2 text-2xl font-bold leading-none tracking-tight">
                         {t('category_general')}
                     </h1>
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-4 flex items-center justify-between">
+                        <div>
+                            <span className="text-xs font-semibold text-brand tracking-wider uppercase block mb-0.5">
+                                Active Server Configuration
+                            </span>
+                            <p className="text-sm font-medium">
+                                Settings are isolated and saved per Jellyfin Server ID.
+                            </p>
+                        </div>
+                        <Badge variant="outline" className="font-mono text-xs">
+                            Per-Server Config Active
+                        </Badge>
+                    </div>
                     <StringInput
                         label={t('server_address_label')}
                         value={serverAddress}
