@@ -16,5 +16,9 @@
     "please_enter_server_address": "サーバーアドレスを入力してください。",
     "could_not_find_server": "そのアドレスに Jellyfin サーバーが見つかりませんでした。",
     "enter_at_least_username": "最低限ユーザー名を入力してください。",
-    "login_failed": "ログインに失敗しました。認証情報を確認してもう一度お試しください。"
+    "login_failed": "ログインに失敗しました。認証情報を確認してもう一度お試しください。",
+    "select_profile": "プロフィールを選択",
+    "select_user": "誰が観ますか？",
+    "switch_profile": "プロフィールを切り替え",
+    "manual_login": "手動ログイン"
 }

@@ -507,7 +507,7 @@ export default function SeerrRequestDialog({
                             <Button
                                 onClick={handleSubmit}
                                 disabled={submitting || isAlreadyAvailable || isPending || (isTv && selectedSeasons.length === 0)}
-                                className="px-6"
+                                className="px-6 cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200 ease-out"
                             >
                                 {submitting ? (
                                     <>

@@ -373,7 +373,7 @@ export default function SeerrCollectionDialog({
                             <Button
                                 onClick={handleRequestSelected}
                                 disabled={submitting || selectedIds.length === 0}
-                                className="px-6 font-semibold"
+                                className="px-6 font-semibold cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200 ease-out"
                             >
                                 {submitting ? (
                                     <>

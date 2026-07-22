@@ -244,7 +244,7 @@ const MediaInfoDialog = ({ streams, path, trigger }: MediaInfoDialogProps) => {
                 {trigger ? (
                     trigger
                 ) : (
-                    <Button variant={'outline'} size={'icon'}>
+                    <Button variant={'outline'} size={'icon'} className="hover:scale-105 active:scale-95 transition-transform duration-200 ease-out">
                         <Info />
                     </Button>
                 )}

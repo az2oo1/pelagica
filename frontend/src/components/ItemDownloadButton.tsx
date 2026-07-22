@@ -27,7 +27,7 @@ const ItemDownloadButton = ({
     if (showDownloadButton === false) return null;
 
     return (
-        <Button variant={variant} size={size} asChild>
+        <Button variant={variant} size={size} className="hover:scale-105 active:scale-95 transition-transform duration-200 ease-out" asChild>
             <a href={getDownloadurl(item.Id || '')} target="_blank" rel="noopener noreferrer">
                 <Download />
             </a>

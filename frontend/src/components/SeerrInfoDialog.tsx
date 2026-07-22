@@ -241,7 +241,7 @@ export default function SeerrInfoDialog({
                                     </div>
                                 )}
                                 {/* Request Options Button */}
-                                <Button onClick={onRequestOpen} className="w-full font-semibold gap-1.5 mt-2.5 h-9 text-xs">
+                                <Button onClick={onRequestOpen} className="w-full font-semibold gap-1.5 mt-2.5 h-9 text-xs cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200 ease-out">
                                     <Play className="h-4 w-4 fill-current animate-pulse" />
                                     Request Options
                                 </Button>

@@ -454,6 +454,21 @@ export function getUserProfileImageUrl(userId: string): string {
     }
 }
 
+export function getPublicUserProfileImageUrl(serverUrl: string, userId: string, tag?: string): string {
+    try {
+        if (!serverUrl || !userId) return '';
+        const url = new URL(serverUrl);
+        url.pathname = `/Users/${userId}/Images/Primary`;
+        url.searchParams.append('quality', '90');
+        if (tag) url.searchParams.append('tag', tag);
+
+        return url.toString();
+    } catch {
+        return '';
+    }
+}
+
+
 export function getDownloadurl(itemId: string) {
     try {
         const server = getServerUrl();

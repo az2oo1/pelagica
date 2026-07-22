@@ -58,7 +58,7 @@ const ItemAdminButton = ({
         <>
             <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
-                    <Button variant={'outline'} size={'icon'}>
+                    <Button variant={'outline'} size={'icon'} className="hover:scale-105 active:scale-95 transition-transform duration-200 ease-out">
                         <EllipsisVertical />
                     </Button>
                 </DropdownMenuTrigger>

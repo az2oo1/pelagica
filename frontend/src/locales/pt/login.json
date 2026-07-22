@@ -16,5 +16,9 @@
   "please_enter_server_address": "Por favor, insira o endereço do servidor.",
   "could_not_find_server": "Não foi possível encontrar um servidor Jellyfin nesse endereço.",
   "enter_at_least_username": "Por favor, insira pelo menos seu nome de usuário.",
-  "login_failed": "Falha ao entrar. Verifique suas credenciais e tente novamente."
+  "login_failed": "Falha ao entrar. Verifique suas credenciais e tente novamente.",
+  "select_profile": "Selecionar perfil",
+  "select_user": "Quem está assistindo?",
+  "switch_profile": "Trocar de perfil",
+  "manual_login": "Login manual"
 }

@@ -672,7 +672,7 @@ const PlayerControls = ({
                     <Button
                         variant={'default'}
                         onClick={() => handleSkipSegment('Intro')}
-                        className="cursor-pointer"
+                        className="cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200 ease-out"
                         title={t('skipIntro')}
                     >
                         <SkipForward />
@@ -683,7 +683,7 @@ const PlayerControls = ({
                     <Button
                         variant={'default'}
                         onClick={() => handleSkipSegment('Outro')}
-                        className="cursor-pointer"
+                        className="cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200 ease-out"
                         title={t('skipOutro')}
                     >
                         <SkipForward />
@@ -725,7 +725,7 @@ const PlayerControls = ({
                             <div className="flex items-center gap-2 w-full">
                                 <Button
                                     variant={'default'}
-                                    className="flex-1"
+                                    className="flex-1 cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200 ease-out"
                                     onClick={() => {
                                         if (!player || !nextItem) return;
                                         player.pause();
@@ -740,7 +740,7 @@ const PlayerControls = ({
                                 </Button>
                                 <Button
                                     variant={'outline'}
-                                    className="flex-1"
+                                    className="flex-1 cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200 ease-out"
                                     onClick={() => {
                                         setDismissedNextItemPrompt(true);
                                     }}
@@ -1017,7 +1017,7 @@ const PlayerControls = ({
                             <Button
                                 variant={'ghost'}
                                 size={'icon-lg'}
-                                className="cursor-pointer"
+                                className="cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200 ease-out"
                                 title={t('previousItem')}
                                 asChild
                             >
@@ -1030,7 +1030,7 @@ const PlayerControls = ({
                             variant={'ghost'}
                             size={'icon-lg'}
                             onClick={togglePlay}
-                            className="cursor-pointer"
+                            className="cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200 ease-out"
                         >
                             {isPlaying ? <Pause size={24} /> : <Play size={24} />}
                         </Button>
@@ -1038,7 +1038,7 @@ const PlayerControls = ({
                             <Button
                                 variant={'ghost'}
                                 size={'icon-lg'}
-                                className="cursor-pointer"
+                                className="cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200 ease-out"
                                 title={t('nextItem')}
                                 asChild
                             >

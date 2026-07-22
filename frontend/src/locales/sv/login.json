@@ -26,5 +26,9 @@
   "quick_connect_initiated": "Initierar snabbanslutning...",
   "quick_connect_failed": "Snabbanslutning misslyckades. Försök igen.",
   "quick_connect_approved": "Snabbanslutning godkänd! Logga in...",
-  "quick_connect_timeout": "Snabbanslutningen har gått ut. Försök igen."
+  "quick_connect_timeout": "Snabbanslutningen har gått ut. Försök igen.",
+  "select_profile": "Välj profil",
+  "select_user": "Vem tittar?",
+  "switch_profile": "Byt profil",
+  "manual_login": "Manuell inloggning"
 }

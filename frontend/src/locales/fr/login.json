@@ -26,5 +26,9 @@
   "quick_connect_initiated": "Initialisation de la connexion rapide...",
   "quick_connect_failed": "Échec de la connexion rapide. Veuillez réessayer.",
   "quick_connect_approved": "Connexion rapide approuvée ! Connexion en cours…",
-  "quick_connect_timeout": "La connexion rapide a expiré. Veuillez réessayer."
+  "quick_connect_timeout": "La connexion rapide a expiré. Veuillez réessayer.",
+  "select_profile": "Sélectionner un profil",
+  "select_user": "Qui regarde ?",
+  "switch_profile": "Changer de profil",
+  "manual_login": "Connexion manuelle"
 }

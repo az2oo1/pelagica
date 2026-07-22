@@ -131,7 +131,7 @@ export default function SeerrItem({ item }: SeerrItemProps) {
                     <div className="absolute inset-x-0 bottom-0 top-1/2 bg-gradient-to-t from-black/85 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 flex items-end justify-center pb-3 px-3 rounded-b-md">
                         <Button
                             size="sm"
-                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1 px-3 shadow-lg scale-95 group-hover:scale-100 transition-all duration-300 border-0 text-[11px] h-7"
+                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1 px-3 shadow-lg scale-95 group-hover:scale-100 hover:scale-105 active:scale-95 transition-all duration-200 ease-out border-0 text-[11px] h-7 cursor-pointer"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setIsRequestOpen(true);

@@ -341,7 +341,7 @@ const BaseMusicListPage = ({ item, config, listType }: BaseMusicListPageProps) =
 
                         {/* Actions */}
                         <div className="flex flex-wrap gap-2.5 items-center mt-2">
-                            <Button id="play-button" onClick={handlePlayAlbum} className="cursor-pointer">
+                            <Button id="play-button" onClick={handlePlayAlbum} className="cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200 ease-out">
                                 <Play className="w-4 h-4 fill-current mr-1.5" />
                                 {t('play')}
                             </Button>

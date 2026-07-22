@@ -26,5 +26,9 @@
     "quick_connect_initiated": "Initiating Quick Connect...",
     "quick_connect_failed": "Quick Connect failed. Please try again.",
     "quick_connect_approved": "Quick Connect approved! Logging in...",
-    "quick_connect_timeout": "Quick Connect timed out. Please try again."
+    "quick_connect_timeout": "Quick Connect timed out. Please try again.",
+    "select_profile": "Select Profile",
+    "select_user": "Who's watching?",
+    "switch_profile": "Switch Profile",
+    "manual_login": "Manual Login"
 }
