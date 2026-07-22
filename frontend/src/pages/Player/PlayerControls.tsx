@@ -597,6 +597,14 @@ const PlayerControls = ({
 
     const displayCurrentTime = currentTime + timeOffset;
     const displayDuration = timeOffset > 0 && item.RunTimeTicks ? item.RunTimeTicks / 10_000_000 : duration;
+    const isLiveTvStream =
+        item.Type === 'TvChannel' ||
+        item.Type === 'LiveTvChannel' ||
+        item.Type === 'Channel' ||
+        item.Type === 'LiveTvProgram' ||
+        item.Type === 'Program' ||
+        !isFinite(displayDuration) ||
+        displayDuration <= 0;
     const displayBufferedTime = bufferedTime + timeOffset;
 
     const introSegment = getMediaSegment('Intro');
@@ -1039,8 +1047,16 @@ const PlayerControls = ({
                                 </Link>
                             </Button>
                         )}
-                        <div className="text-sm ml-2">
-                            {formatPlayTime(clampedCurrentTime)} / {formatPlayTime(displayDuration)}
+                        <div className="text-sm ml-2 font-mono flex items-center gap-1.5">
+                            {isLiveTvStream ? (
+                                <>
+                                    <span>{formatPlayTime(displayCurrentTime)}</span>
+                                    <span className="text-muted-foreground">/</span>
+                                    <span className="text-red-500 font-bold tracking-wider text-xs px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/20">LIVE</span>
+                                </>
+                            ) : (
+                                <span>{formatPlayTime(clampedCurrentTime)} / {formatPlayTime(displayDuration)}</span>
+                            )}
                         </div>
                     </div>
 
@@ -1409,19 +1425,31 @@ const PlayerControls = ({
                                 </div>
                                 {/* Progress text details */}
                                 <div className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm text-white/60 font-medium tracking-wide">
-                                    <span>•</span>
-                                    <span>{formatPlayTime(clampedCurrentTime)} / {formatPlayTime(displayDuration)}</span>
-                                    <span>•</span>
-                                    <span>{progressPercentage.toFixed(0)}% watched</span>
-                                    <span>•</span>
-                                    <span>Ends at {(() => {
-                                        const remainingTicks = (displayDuration - clampedCurrentTime) * 10000000;
-                                        return getEndsAt(remainingTicks).toLocaleTimeString([], {
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                        });
-                                    })()}</span>
-                                    <span>•</span>
+                                    {isLiveTvStream ? (
+                                        <>
+                                            <span>•</span>
+                                            <span>{formatPlayTime(displayCurrentTime)}</span>
+                                            <span>•</span>
+                                            <span className="text-red-400 font-bold tracking-wider">LIVE BROADCAST</span>
+                                            <span>•</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>•</span>
+                                            <span>{formatPlayTime(clampedCurrentTime)} / {formatPlayTime(displayDuration)}</span>
+                                            <span>•</span>
+                                            <span>{progressPercentage.toFixed(0)}% watched</span>
+                                            <span>•</span>
+                                            <span>Ends at {(() => {
+                                                const remainingTicks = (displayDuration - clampedCurrentTime) * 10000000;
+                                                return getEndsAt(remainingTicks).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                });
+                                            })()}</span>
+                                            <span>•</span>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>

@@ -27,7 +27,7 @@ export function usePlayerItem(
                     'Chapters',
                     'SeriesId',
                     'SeriesName',
-                ],
+                ] as any,
                 enableUserData,
                 userId,
             });

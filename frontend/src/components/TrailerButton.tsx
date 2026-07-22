@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router';
 export const TrailerButton = ({ item }: { item: BaseItemDto }) => {
     const navigate = useNavigate();
 
-    const localTrailers = item.LocalTrailers || [];
+    const localTrailers = (item as any).LocalTrailers || [];
     const remoteTrailers = (item.RemoteTrailers || []).filter((t) => t.Url);
 
     const totalTrailersCount = localTrailers.length + remoteTrailers.length;
@@ -35,7 +35,7 @@ export const TrailerButton = ({ item }: { item: BaseItemDto }) => {
         const singleRemote = remoteTrailers[0];
         return (
             <Button variant="outline" asChild>
-                <a href={singleRemote.Url} target="_blank" rel="noopener noreferrer">
+                <a href={singleRemote.Url || undefined} target="_blank" rel="noopener noreferrer">
                     <Film />
                     Trailer
                 </a>
@@ -53,7 +53,7 @@ export const TrailerButton = ({ item }: { item: BaseItemDto }) => {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-                {localTrailers.map((local, index) => (
+                {localTrailers.map((local: any, index: number) => (
                     <DropdownMenuItem
                         key={`local-${local.Id || index}`}
                         onClick={() => local.Id && navigate(`/play/${local.Id}`)}
@@ -64,7 +64,7 @@ export const TrailerButton = ({ item }: { item: BaseItemDto }) => {
                 {remoteTrailers.map((remote, index) => (
                     <DropdownMenuItem key={`remote-${remote.Url || index}`} asChild>
                         <a
-                            href={remote.Url}
+                            href={remote.Url || undefined}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="w-full cursor-pointer"

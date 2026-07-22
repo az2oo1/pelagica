@@ -605,13 +605,6 @@ const TopBar = (_props: { overlay?: boolean }) => {
                     </Button>
 
                     <Button asChild variant="ghost" size="sm">
-                        <Link to="/search">
-                            <Search className="h-4 w-4" />
-                            {t('search')}
-                        </Link>
-                    </Button>
-
-                    <Button asChild variant="ghost" size="sm">
                         <Link to="/livetv">
                             <Tv className="h-4 w-4" />
                             Live TV
@@ -648,6 +641,14 @@ const TopBar = (_props: { overlay?: boolean }) => {
                 </nav>
 
                 <div className="flex-1" />
+
+                {/* Search page button on far right */}
+                <Button asChild variant="ghost" size="sm" className="mr-1">
+                    <Link to="/search">
+                        <Search className="h-4 w-4" />
+                        <span className="hidden sm:inline">{t('search')}</span>
+                    </Link>
+                </Button>
 
                 {/* User menu */}
                 <UserMenu />

@@ -8,13 +8,13 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getPrimaryImageUrl, getBackdropUrl } from '@/utils/jellyfinUrls';
 import { buildPlayerUrl } from '@/utils/playerUrl';
 import { Link } from 'react-router';
-import { Tv, Play, Radio, Search, Calendar, Clock, Sparkles, ChevronRight, Film } from 'lucide-react';
+import { Tv, Play, Radio, Search, Calendar, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ticksToReadableTime } from '@/utils/timeConversion';
 
 export default function LiveTVPage() {
     const { data: channels, isLoading: channelsLoading, isError: channelsError } = useLiveTvChannels();
-    const { data: recommended, isLoading: recommendedLoading } = useLiveTvRecommendedPrograms();
+    const { data: recommended } = useLiveTvRecommendedPrograms();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState<'channels' | 'guide' | 'airing'>('channels');
 

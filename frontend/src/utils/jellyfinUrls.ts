@@ -1,4 +1,4 @@
-import { getAccessToken, getServerUrl, getDeviceId, getDeviceName } from './localstorageCredentials';
+import { getAccessToken, getServerUrl, getDeviceId } from './localstorageCredentials';
 import { getSupportedVideoCodecs } from './videoCodecDetection';
 import type { PlayMethod } from '@/hooks/api/usePlaybackInfo';
 interface Credentials {
@@ -173,6 +173,7 @@ export function getVideoStreamUrl(
         playSessionId?: string;
         audioStreamIndex?: number;
         startTimeTicks?: number;
+        liveStreamId?: string;
     }
 ) {
     try {
@@ -201,6 +202,9 @@ export function getVideoStreamUrl(
 
         url.searchParams.append('TranscodingProtocol', 'hls');
 
+        if (options.liveStreamId !== undefined) {
+            url.searchParams.append('LiveStreamId', options.liveStreamId);
+        }
         if (options.playSessionId !== undefined)
             url.searchParams.append('PlaySessionId', options.playSessionId);
         if (options.audioStreamIndex !== undefined) {
@@ -214,44 +218,6 @@ export function getVideoStreamUrl(
     } catch {
         return '';
     }
-
-    // https://jellyfin.jan.run/videos/12110497-4502-30bc-50b6-aa9b56f85e13/master.m3u8?
-    // &DeviceId=TW96aWxsYS81LjAgKE1hY2ludG9zaDsgSW50ZWwgTWFjIE9TIFggMTBfMTVfNykgQXBwbGVXZWJLaXQvNjA1LjEuMTUgKEtIVE1MLCBsaWtlIEdlY2tvKSBWZXJzaW9uLzE4LjUgU2FmYXJpLzYwNS4xLjE1fDE3NTYwMjYzOTY4MTI1
-    // &MediaSourceId=12110497450230bc50b6aa9b56f85e13
-    // &VideoCodec=av1,hevc,h264,vp9
-    // &AudioCodec=aac
-    // &AudioStreamIndex=1
-    // &VideoBitrate=139872000
-    // &AudioBitrate=128000
-    // &AudioSampleRate=44100
-    // &MaxFramerate=23.976025
-    // &SegmentContainer=mp4
-    // &MinSegments=2
-    // &BreakOnNonKeyFrames=True
-    // &PlaySessionId=20b1c85b8d494d25bdc420f9d91955bc
-    // &ApiKey=XXX
-    // &TranscodingMaxAudioChannels=6
-    // &RequireAvc=false
-    // &EnableAudioVbrEncoding=true
-    // &Tag=e0bf36a4068922681907bddf213fcbfb
-    // &SubtitleMethod=Encode
-    // &hevc-level=150
-    // &hevc-videobitdepth=10
-    // &hevc-profile=main10
-    // &hevc-audiochannels=2
-    // &aac-profile=lc
-    // &av1-profile=main
-    // &av1-rangetype=SDR,HDR10,HDR10Plus,HLG,DOVI,DOVIWithHDR10,DOVIWithHLG,DOVIWithSDR,DOVIWithHDR10Plus
-    // &av1-level=17
-    // &vp9-rangetype=SDR,HDR10,HDR10Plus,HLG
-    // &hevc-rangetype=SDR,HDR10,HDR10Plus,HLG,DOVI,DOVIWithHDR10,DOVIWithHLG,DOVIWithSDR,DOVIWithHDR10Plus
-    // &hevc-deinterlace=true
-    // &hevc-codectag=hvc1,dvh1
-    // &h264-profile=high,main,baseline,constrainedbaseline
-    // &h264-rangetype=SDR
-    // &h264-level=52
-    // &h264-deinterlace=true
-    // &TranscodeReasons=ContainerNotSupported,VideoCodecTagNotSupported
 }
 
 export function getDirectStreamUrl(
@@ -262,6 +228,7 @@ export function getDirectStreamUrl(
         audioStreamIndex?: number;
         playSessionId?: string;
         startTimeTicks?: number;
+        liveStreamId?: string;
     }
 ) {
     try {
@@ -275,6 +242,9 @@ export function getDirectStreamUrl(
         url.searchParams.append('MediaSourceId', options.mediaSourceId || itemId);
         url.searchParams.append('ApiKey', creds.token);
 
+        if (options.liveStreamId !== undefined) {
+            url.searchParams.append('LiveStreamId', options.liveStreamId);
+        }
         if (options.playSessionId !== undefined)
             url.searchParams.append('PlaySessionId', options.playSessionId);
         if (options.audioStreamIndex !== undefined)
@@ -317,6 +287,8 @@ export function getPlaybackStreamUrl(
         mediaSourceId?: string;
         container?: string;
         transcodingUrl?: string | null;
+        directStreamUrl?: string | null;
+        liveStreamId?: string | null;
         startTimeTicks?: number;
         isLiveTv?: boolean;
     }
@@ -338,8 +310,28 @@ export function getPlaybackStreamUrl(
             const path = options.transcodingUrl.startsWith('/')
                 ? options.transcodingUrl
                 : `/${options.transcodingUrl}`;
+            let url = `${base}${path}`;
+            if (options.liveStreamId && !url.includes('LiveStreamId=')) {
+                const sep = url.includes('?') ? '&' : '?';
+                url = `${url}${sep}LiveStreamId=${options.liveStreamId}`;
+            }
             return {
-                url: appendApiKey(`${base}${path}`),
+                url: appendApiKey(url),
+                mimeType: 'application/x-mpegURL',
+            };
+        }
+        if (options.directStreamUrl && creds) {
+            const base = creds.server.replace(/\/+$/, '');
+            const path = options.directStreamUrl.startsWith('/')
+                ? options.directStreamUrl
+                : `/${options.directStreamUrl}`;
+            let url = `${base}${path}`;
+            if (options.liveStreamId && !url.includes('LiveStreamId=')) {
+                const sep = url.includes('?') ? '&' : '?';
+                url = `${url}${sep}LiveStreamId=${options.liveStreamId}`;
+            }
+            return {
+                url: appendApiKey(url),
                 mimeType: 'application/x-mpegURL',
             };
         }
@@ -348,7 +340,7 @@ export function getPlaybackStreamUrl(
                 mediaSourceId: options.mediaSourceId,
                 audioStreamIndex: options.audioStreamIndex,
                 playSessionId: options.playSessionId,
-                startTimeTicks: options.startTimeTicks,
+                liveStreamId: options.liveStreamId || undefined,
             }),
             mimeType: 'application/x-mpegURL',
         };
@@ -366,6 +358,7 @@ export function getPlaybackStreamUrl(
                 audioStreamIndex: options.audioStreamIndex,
                 playSessionId: options.playSessionId,
                 startTimeTicks: options.startTimeTicks,
+                liveStreamId: options.liveStreamId || undefined,
             }),
             mimeType,
         };
@@ -392,6 +385,7 @@ export function getPlaybackStreamUrl(
             audioStreamIndex: options.audioStreamIndex,
             playSessionId: options.playSessionId,
             startTimeTicks: options.startTimeTicks,
+            liveStreamId: options.liveStreamId || undefined,
         }),
         mimeType: 'application/x-mpegURL',
     };

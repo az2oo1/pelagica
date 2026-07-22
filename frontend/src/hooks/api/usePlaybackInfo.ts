@@ -25,14 +25,31 @@ function buildDeviceProfile() {
 
     const directPlayProfiles = [
         {
-            Container: 'mp4,webm',
+            Container: 'mp4,m4v,webm',
             Type: 'Video' as const,
             VideoCodec: videoCodecs.join(','),
             AudioCodec: 'aac,mp3,opus,flac',
         },
+        {
+            Container: 'hls,m3u8,ts',
+            Type: 'Video' as const,
+            VideoCodec: videoCodecs.join(','),
+            AudioCodec: 'aac,mp3,mp2,ac3,eac3,opus',
+        },
     ];
 
     const transcodingProfiles = [
+        {
+            Container: 'ts',
+            Type: 'Video' as const,
+            VideoCodec: videoCodecs.join(','),
+            AudioCodec: 'aac,mp3',
+            Protocol: 'hls' as const,
+            Context: 'Streaming' as const,
+            MinSegments: 2,
+            BreakOnNonKeyFrames: true,
+            EnableAudioVbrEncoding: true,
+        },
         {
             Container: 'mp4',
             Type: 'Video' as const,
@@ -51,7 +68,13 @@ function buildDeviceProfile() {
         MaxStaticBitrate: 100_000_000,
         DirectPlayProfiles: directPlayProfiles,
         TranscodingProfiles: transcodingProfiles,
-        ContainerProfiles: [],
+        ContainerProfiles: [
+            {
+                Type: 'Video' as const,
+                Container: 'm3u8,ts',
+                Conditions: [],
+            },
+        ],
         CodecProfiles: [],
         SubtitleProfiles: [
             { Format: 'vtt', Method: 'External' as const },
@@ -98,28 +121,30 @@ export function usePlaybackInfo(
 
             let source = mediaSources[0];
 
-            if (source.RequiresOpening && source.OpenToken) {
-                try {
-                    const openRes = await mediaInfoApi.openLiveStream({
-                        openLiveStreamDto: {
-                            OpenToken: source.OpenToken,
-                            ItemId: itemId!,
-                            PlaySessionId: playSessionId,
-                            DeviceProfile: buildDeviceProfile(),
-                        },
-                    });
-                    if (openRes.data.MediaSource) {
-                        source = openRes.data.MediaSource;
+            if (source.RequiresOpening || source.IsInfiniteStream || !!source.LiveStreamId) {
+                if (source.RequiresOpening || !source.LiveStreamId) {
+                    try {
+                        const openRes = await mediaInfoApi.openLiveStream({
+                            openLiveStreamDto: {
+                                OpenToken: source.OpenToken || undefined,
+                                ItemId: itemId!,
+                                PlaySessionId: playSessionId,
+                                DeviceProfile: buildDeviceProfile(),
+                            },
+                        });
+                        if (openRes.data.MediaSource) {
+                            source = openRes.data.MediaSource;
+                        }
+                    } catch (e) {
+                        console.warn('[usePlaybackInfo] openLiveStream error:', e);
                     }
-                } catch (e) {
-                    console.warn('[usePlaybackInfo] openLiveStream error:', e);
                 }
             }
 
             let playMethod: PlayMethod;
-            if (source.SupportsDirectPlay && !source.IsInfiniteStream && source.Type !== 'Live') {
+            if (source.SupportsDirectPlay && !source.IsInfiniteStream && !source.LiveStreamId) {
                 playMethod = 'DirectPlay';
-            } else if (source.SupportsDirectStream && !source.IsInfiniteStream && source.Type !== 'Live') {
+            } else if (source.SupportsDirectStream && !source.IsInfiniteStream && !source.LiveStreamId) {
                 playMethod = 'DirectStream';
             } else {
                 playMethod = 'Transcode';

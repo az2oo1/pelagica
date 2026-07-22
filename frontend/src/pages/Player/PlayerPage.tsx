@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { getApi } from '@/api/getApi';
+import { getMediaInfoApi } from '@jellyfin/sdk/lib/utils/api/media-info-api';
 import { useReportPlaybackProgress } from '@/hooks/api/usePlaybackProgress';
 import { usePlaybackStart } from '@/hooks/api/usePlaybackStart';
 import { usePlaybackStop } from '@/hooks/api/usePlaybackStop';
@@ -124,8 +126,24 @@ const PlayerPage = () => {
     } = usePlaybackInfo(itemId, getUserId() || undefined, audioTrackIndex);
 
     const playSessionId = playbackInfo?.playSessionId || '';
+    const liveStreamId = playbackInfo?.mediaSource?.LiveStreamId || null;
 
     const [forceTranscode, setForceTranscode] = useState(false);
+
+    const isLiveTv = useMemo(() => {
+        return (
+            item?.Type === 'TvChannel' ||
+            item?.Type === 'LiveTvChannel' ||
+            item?.Type === 'Channel' ||
+            item?.Type === 'LiveTvProgram' ||
+            item?.Type === 'Program' ||
+            playbackInfo?.mediaSource.IsInfiniteStream === true ||
+            !!playbackInfo?.mediaSource.LiveStreamId ||
+            !!(playbackInfo?.mediaSource.Path && (playbackInfo.mediaSource.Path.startsWith('http') || playbackInfo.mediaSource.Path.includes('.m3u'))) ||
+            playbackInfo?.mediaSource.Container === 'm3u8' ||
+            playbackInfo?.mediaSource.Container === 'ts'
+        );
+    }, [item, playbackInfo]);
 
     const streamResult = useMemo(() => {
         if (!itemId || !playbackInfo) return null;
@@ -138,18 +156,27 @@ const PlayerPage = () => {
             mediaSourceId: playbackInfo.mediaSource.Id || undefined,
             container: playbackInfo.mediaSource.Container?.split(',')[0] || undefined,
             transcodingUrl: playbackInfo.mediaSource.TranscodingUrl,
-            startTimeTicks: (item?.UserData as any)?.PlaybackPositionTicks
-                ? (item?.UserData as any).PlaybackPositionTicks / 10000000
-                : undefined,
-            isLiveTv:
-                item?.Type === 'TvChannel' ||
-                playbackInfo.mediaSource.IsInfiniteStream === true ||
-                playbackInfo.mediaSource.Type === 'Live' ||
-                !!(playbackInfo.mediaSource.Path && (playbackInfo.mediaSource.Path.startsWith('http') || playbackInfo.mediaSource.Path.includes('.m3u'))) ||
-                playbackInfo.mediaSource.Container === 'm3u8' ||
-                playbackInfo.mediaSource.Container === 'ts',
+            directStreamUrl: (playbackInfo.mediaSource as any).DirectStreamUrl || undefined,
+            liveStreamId: playbackInfo.mediaSource.LiveStreamId || undefined,
+            startTimeTicks: isLiveTv ? undefined : undefined,
+            isLiveTv,
         });
-    }, [itemId, playbackInfo, audioTrackIndex, item, forceTranscode]);
+    }, [itemId, playbackInfo, audioTrackIndex, forceTranscode, isLiveTv]);
+
+    // Close live stream session on teardown
+    useEffect(() => {
+        return () => {
+            if (liveStreamId) {
+                try {
+                    const api = getApi();
+                    const mediaInfoApi = getMediaInfoApi(api);
+                    mediaInfoApi.closeLiveStream({ liveStreamId });
+                } catch (e) {
+                    console.warn('[PlayerPage] Failed to close live stream session:', e);
+                }
+            }
+        };
+    }, [liveStreamId]);
 
     const { reportProgress } = useReportPlaybackProgress();
     const { startPlayback } = usePlaybackStart();
@@ -204,7 +231,7 @@ const PlayerPage = () => {
         return getPrimaryImageUrl(item?.Id);
     }, [item?.Id]);
 
-    const startTicks = item?.UserData?.PlaybackPositionTicks || 0;
+    const startTicks = isLiveTv ? 0 : item?.UserData?.PlaybackPositionTicks || 0;
 
     const timeOffset = useMemo(() => {
         if (playbackInfo?.playMethod === 'Transcode' && startTicks > 0) {
