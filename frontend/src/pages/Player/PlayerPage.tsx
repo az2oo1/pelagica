@@ -125,10 +125,14 @@ const PlayerPage = () => {
 
     const playSessionId = playbackInfo?.playSessionId || '';
 
+    const [forceTranscode, setForceTranscode] = useState(false);
+
     const streamResult = useMemo(() => {
         if (!itemId || !playbackInfo) return null;
 
-        return getPlaybackStreamUrl(itemId, playbackInfo.playMethod, {
+        const effectivePlayMethod = forceTranscode ? 'Transcode' : playbackInfo.playMethod;
+
+        return getPlaybackStreamUrl(itemId, effectivePlayMethod, {
             playSessionId: playbackInfo.playSessionId,
             audioStreamIndex: audioTrackIndex,
             mediaSourceId: playbackInfo.mediaSource.Id || undefined,
@@ -136,7 +140,7 @@ const PlayerPage = () => {
             transcodingUrl: playbackInfo.mediaSource.TranscodingUrl,
             startTimeTicks: item?.UserData?.PlaybackPositionTicks || 0,
         });
-    }, [itemId, playbackInfo, audioTrackIndex, item]);
+    }, [itemId, playbackInfo, audioTrackIndex, item, forceTranscode]);
 
     const { reportProgress } = useReportPlaybackProgress();
     const { startPlayback } = usePlaybackStart();
@@ -377,6 +381,12 @@ const PlayerPage = () => {
                 isAudioSwitchRef={isAudioSwitchRef}
                 subtitleTrackIndex={subtitleTrackIndex}
                 subtitleDelay={subtitleDelay}
+                onError={() => {
+                    if (!forceTranscode) {
+                        console.warn('[PlayerPage] Direct playback failed, falling back to transcode stream...');
+                        setForceTranscode(true);
+                    }
+                }}
             />
             <PlayerControls
                 item={item}

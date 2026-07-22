@@ -22,6 +22,7 @@ interface VideoPlayerProps {
     isAudioSwitchRef: React.MutableRefObject<boolean>;
     subtitleTrackIndex: number | null;
     subtitleDelay: number;
+    onError?: (error: any) => void;
 }
 
 const adjustTrackCues = (track: any, delay: number) => {
@@ -202,7 +203,12 @@ const VideoPlayer = ({
         const handleLoadStart = () => setIsBuffering(true);
         const handleCanPlay = () => setIsBuffering(false);
         const handlePause = () => setIsBuffering(false);
-        const handleError = () => setIsBuffering(false);
+        const handleError = (e: any) => {
+            setIsBuffering(false);
+            const err = player.error();
+            console.warn('[VideoPlayer] Playback error encountered:', err || e);
+            onError?.(err || e);
+        };
 
         player.on('waiting', handleWaiting);
         player.on('playing', handlePlaying);
