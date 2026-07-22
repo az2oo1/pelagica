@@ -294,8 +294,16 @@ export interface PlaybackStreamResult {
 
 const BROWSER_PLAYABLE_CONTAINERS: Record<string, string> = {
     mp4: 'video/mp4',
+    m4v: 'video/mp4',
     webm: 'video/webm',
     mov: 'video/mp4',
+    ogv: 'video/ogg',
+    mp3: 'audio/mpeg',
+    aac: 'audio/aac',
+    flac: 'audio/flac',
+    m4a: 'audio/mp4',
+    wav: 'audio/wav',
+    ogg: 'audio/ogg',
 };
 
 export function getPlaybackStreamUrl(
@@ -314,7 +322,8 @@ export function getPlaybackStreamUrl(
     const container = options.container?.toLowerCase();
     const mimeType = container ? BROWSER_PLAYABLE_CONTAINERS[container] : undefined;
 
-    if ((playMethod === 'DirectPlay' || playMethod === 'DirectStream') && mimeType) {
+    // Prefer DirectPlay / DirectStream when format is natively supported by browser
+    if ((playMethod === 'DirectPlay' || playMethod === 'DirectStream' || (mimeType && !options.transcodingUrl)) && mimeType) {
         return {
             url: getDirectStreamUrl(itemId, {
                 mediaSourceId: options.mediaSourceId,
