@@ -83,21 +83,13 @@ export function BaseContinueRow({
                                                   <>
                                                       <img
                                                           src={
-                                                              item.SeriesId
-                                                                  ? getPrimaryImageUrl(
-                                                                        item.Id!,
-                                                                        {
-                                                                            width: 416,
-                                                                        },
-                                                                        item.ImageTags?.Primary
-                                                                    )
-                                                                  : getThumbUrl(
-                                                                        item.Id!,
-                                                                        {
-                                                                            width: 416,
-                                                                        },
-                                                                        item.ImageTags?.Thumb
-                                                                    )
+                                                              item.ImageTags?.Thumb
+                                                                  ? getThumbUrl(item.Id!, { width: 416 }, item.ImageTags.Thumb)
+                                                                  : item.ImageTags?.Primary
+                                                                  ? getPrimaryImageUrl(item.Id!, { width: 416 }, item.ImageTags.Primary)
+                                                                  : item.SeriesId
+                                                                  ? getPrimaryImageUrl(item.SeriesId, { width: 416 })
+                                                                  : getPrimaryImageUrl(item.Id!, { width: 416 })
                                                           }
                                                           alt={item.Name || t('no_title')}
                                                           className={cn(

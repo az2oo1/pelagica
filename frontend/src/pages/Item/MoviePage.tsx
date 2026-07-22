@@ -130,7 +130,7 @@ const MoviePage = ({ item, config }: MoviePageProps) => {
                         </div>
 
                         {/* Overview */}
-                        <p className="text-base sm:text-lg text-foreground/90 leading-relaxed font-normal max-w-3xl mt-2">
+                        <p className="text-base sm:text-lg text-foreground/90 leading-relaxed font-normal max-w-3xl mt-2 whitespace-pre-line">
                             {item.Overview}
                         </p>
 
