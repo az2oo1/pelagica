@@ -419,6 +419,10 @@ const LibraryPage = () => {
         setSearchParams(params);
     };
 
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [pageParam]);
+
     return (
         <Page title={t('title')} requiresAuth className="flex-1">
             <Tabs
@@ -440,14 +444,19 @@ const LibraryPage = () => {
                         onValueChange={handleLibraryChange}
                         value={activeLibraryId}
                     >
-                        <SelectTrigger size="sm" className="w-full sm:hidden">
-                            <SelectValue placeholder={t('select_library', { defaultValue: 'Select Library' })} />
+                        <SelectTrigger size="sm" className="w-full sm:hidden font-medium bg-secondary/30 border-secondary/40 py-2.5 h-auto rounded-lg">
+                            <div className="flex items-center gap-2 truncate">
+                                {activeLibrary && <JellyfinLibraryIcon libraryType={activeLibrary.CollectionType} />}
+                                <span>{activeLibrary?.Name || t('select_library', { defaultValue: 'Select Library' })}</span>
+                            </div>
                         </SelectTrigger>
                         <SelectContent>
                             {libraryItems.map((library) => (
-                                <SelectItem key={library.Id} value={library.Id ?? ''}>
-                                    <JellyfinLibraryIcon libraryType={library.CollectionType} />
-                                    {library.Name}
+                                <SelectItem key={library.Id} value={library.Id ?? ''} className="py-2">
+                                    <div className="flex items-center gap-2">
+                                        <JellyfinLibraryIcon libraryType={library.CollectionType} />
+                                        <span>{library.Name}</span>
+                                    </div>
                                 </SelectItem>
                             ))}
                         </SelectContent>
