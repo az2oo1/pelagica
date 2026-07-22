@@ -33,6 +33,7 @@ const AllStudiosPage = lazy(() => import('./pages/Studios/AllStudiosPage.tsx'));
 const AllItemsPage = lazy(() => import('./pages/Items/AllItemsPage.tsx'));
 const PhotoViewerPage = lazy(() => import('./pages/PhotoViewer/PhotoViewerPage.tsx'));
 const GenrePage = lazy(() => import('./pages/Genre/GenrePage.tsx'));
+const LiveTVPage = lazy(() => import('./pages/LiveTV/LiveTVPage.tsx'));
 
 const PageFallback = () => (
     <div className="min-h-screen bg-background flex items-center justify-center">
@@ -78,6 +79,7 @@ createRoot(document.getElementById('root')!).render(
                                     <Route path="/settings" element={<SettingsPage />} />
                                     <Route path="/browse-themes" element={<ThemeBrowserPage />} />
                                     <Route path="/search" element={<SearchPage />} />
+                                    <Route path="/livetv" element={<LiveTVPage />} />
                                     <Route path="/photo/:itemId" element={<PhotoViewerPage />} />
                                     <Route path="*" element={<NotFoundPage />} />
                                 </Routes>

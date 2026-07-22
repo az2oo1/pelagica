@@ -20,6 +20,7 @@ import {
     Settings2,
     Sun,
     TriangleAlert,
+    Tv,
     X,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -607,6 +608,13 @@ const TopBar = (_props: { overlay?: boolean }) => {
                         <Link to="/search">
                             <Search className="h-4 w-4" />
                             {t('search')}
+                        </Link>
+                    </Button>
+
+                    <Button asChild variant="ghost" size="sm">
+                        <Link to="/livetv">
+                            <Tv className="h-4 w-4" />
+                            Live TV
                         </Link>
                     </Button>
 
