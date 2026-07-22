@@ -41,7 +41,7 @@ export function useSeerrSearch(query: string, usernameFromUi?: string) {
             const password = getPassword() || '';
 
             const url = new URL('/api/seerr/search', window.location.origin);
-            url.searchParams.set('query', query);
+            url.searchParams.set('query', encodeURIComponent(query.trim()));
 
             const res = await fetch(url.toString(), {
                 method: 'GET',

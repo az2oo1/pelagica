@@ -380,8 +380,8 @@ const LibraryPage = () => {
             : 'MusicAlbum';
 
         let savedSortBy = typeof window !== 'undefined'
-            ? (localStorage.getItem('pelagica_library_sort_by') as ItemSortBy) || 'Name'
-            : 'Name';
+            ? (localStorage.getItem('pelagica_library_sort_by') as ItemSortBy) || 'DateCreated'
+            : 'DateCreated';
 
         if (savedSortBy as string === 'DateLastPlayed') {
             savedSortBy = 'DatePlayed';
