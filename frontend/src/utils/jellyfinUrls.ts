@@ -1,4 +1,4 @@
-import { getAccessToken, getServerUrl } from './localstorageCredentials';
+import { getAccessToken, getServerUrl, getDeviceId, getDeviceName } from './localstorageCredentials';
 import { getSupportedVideoCodecs } from './videoCodecDetection';
 import type { PlayMethod } from '@/hooks/api/usePlaybackInfo';
 interface Credentials {
@@ -184,6 +184,7 @@ export function getVideoStreamUrl(
         url.pathname = `/videos/${itemId}/master.m3u8`;
         url.searchParams.append('MediaSourceId', itemId);
         url.searchParams.append('ApiKey', token);
+        url.searchParams.append('DeviceId', getDeviceId());
         url.searchParams.append('VideoCodec', getSupportedVideoCodecs());
         url.searchParams.append('AudioCodec', 'aac');
         url.searchParams.append('SegmentContainer', 'mp4');
