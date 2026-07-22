@@ -138,7 +138,16 @@ const PlayerPage = () => {
             mediaSourceId: playbackInfo.mediaSource.Id || undefined,
             container: playbackInfo.mediaSource.Container?.split(',')[0] || undefined,
             transcodingUrl: playbackInfo.mediaSource.TranscodingUrl,
-            startTimeTicks: item?.UserData?.PlaybackPositionTicks || 0,
+            startTimeTicks: (item?.UserData as any)?.PlaybackPositionTicks
+                ? (item?.UserData as any).PlaybackPositionTicks / 10000000
+                : undefined,
+            isLiveTv:
+                item?.Type === 'TvChannel' ||
+                playbackInfo.mediaSource.IsInfiniteStream === true ||
+                playbackInfo.mediaSource.Type === 'Live' ||
+                !!(playbackInfo.mediaSource.Path && (playbackInfo.mediaSource.Path.startsWith('http') || playbackInfo.mediaSource.Path.includes('.m3u'))) ||
+                playbackInfo.mediaSource.Container === 'm3u8' ||
+                playbackInfo.mediaSource.Container === 'ts',
         });
     }, [itemId, playbackInfo, audioTrackIndex, item, forceTranscode]);
 

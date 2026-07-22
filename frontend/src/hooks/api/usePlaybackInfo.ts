@@ -78,6 +78,7 @@ export function usePlaybackInfo(
                 userId,
                 maxStreamingBitrate: 80_000_000,
                 audioStreamIndex,
+                autoOpenLiveStream: true,
                 enableDirectPlay: true,
                 enableDirectStream: true,
                 enableTranscoding: true,
@@ -95,12 +96,30 @@ export function usePlaybackInfo(
                 throw new Error('No media sources available');
             }
 
-            const source = mediaSources[0];
+            let source = mediaSources[0];
+
+            if (source.RequiresOpening && source.OpenToken) {
+                try {
+                    const openRes = await mediaInfoApi.openLiveStream({
+                        openLiveStreamDto: {
+                            OpenToken: source.OpenToken,
+                            ItemId: itemId!,
+                            PlaySessionId: playSessionId,
+                            DeviceProfile: buildDeviceProfile(),
+                        },
+                    });
+                    if (openRes.data.MediaSource) {
+                        source = openRes.data.MediaSource;
+                    }
+                } catch (e) {
+                    console.warn('[usePlaybackInfo] openLiveStream error:', e);
+                }
+            }
 
             let playMethod: PlayMethod;
-            if (source.SupportsDirectPlay) {
+            if (source.SupportsDirectPlay && !source.IsInfiniteStream && source.Type !== 'Live') {
                 playMethod = 'DirectPlay';
-            } else if (source.SupportsDirectStream) {
+            } else if (source.SupportsDirectStream && !source.IsInfiniteStream && source.Type !== 'Live') {
                 playMethod = 'DirectStream';
             } else {
                 playMethod = 'Transcode';

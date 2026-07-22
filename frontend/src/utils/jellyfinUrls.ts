@@ -169,6 +169,7 @@ export function getAudioStreamUrl(itemId: string, userId?: string) {
 export function getVideoStreamUrl(
     itemId: string,
     options: {
+        mediaSourceId?: string;
         playSessionId?: string;
         audioStreamIndex?: number;
         startTimeTicks?: number;
@@ -181,8 +182,8 @@ export function getVideoStreamUrl(
         if (!server || !token) return '';
 
         const url = new URL(server);
-        url.pathname = `/videos/${itemId}/master.m3u8`;
-        url.searchParams.append('MediaSourceId', itemId);
+        url.pathname = `/Videos/${itemId}/master.m3u8`;
+        url.searchParams.append('MediaSourceId', options.mediaSourceId || itemId);
         url.searchParams.append('ApiKey', token);
         url.searchParams.append('DeviceId', getDeviceId());
         url.searchParams.append('VideoCodec', getSupportedVideoCodecs());
@@ -317,14 +318,47 @@ export function getPlaybackStreamUrl(
         container?: string;
         transcodingUrl?: string | null;
         startTimeTicks?: number;
+        isLiveTv?: boolean;
     }
 ): PlaybackStreamResult {
     const creds = resolveCredentials();
+
+    const appendApiKey = (inputUrl: string): string => {
+        if (!creds?.token) return inputUrl;
+        if (!inputUrl.includes('api_key=') && !inputUrl.includes('ApiKey=')) {
+            const sep = inputUrl.includes('?') ? '&' : '?';
+            return `${inputUrl}${sep}ApiKey=${creds.token}`;
+        }
+        return inputUrl;
+    };
+
+    if (options.isLiveTv) {
+        if (options.transcodingUrl && creds) {
+            const base = creds.server.replace(/\/+$/, '');
+            const path = options.transcodingUrl.startsWith('/')
+                ? options.transcodingUrl
+                : `/${options.transcodingUrl}`;
+            return {
+                url: appendApiKey(`${base}${path}`),
+                mimeType: 'application/x-mpegURL',
+            };
+        }
+        return {
+            url: getVideoStreamUrl(itemId, {
+                mediaSourceId: options.mediaSourceId,
+                audioStreamIndex: options.audioStreamIndex,
+                playSessionId: options.playSessionId,
+                startTimeTicks: options.startTimeTicks,
+            }),
+            mimeType: 'application/x-mpegURL',
+        };
+    }
+
     const container = options.container?.toLowerCase();
     const mimeType = container ? BROWSER_PLAYABLE_CONTAINERS[container] : undefined;
 
     // Prefer DirectPlay / DirectStream when format is natively supported by browser
-    if ((playMethod === 'DirectPlay' || playMethod === 'DirectStream' || (mimeType && !options.transcodingUrl)) && mimeType) {
+    if ((playMethod === 'DirectPlay' || playMethod === 'DirectStream' || (mimeType && !options.transcodingUrl)) && mimeType && !options.isLiveTv) {
         return {
             url: getDirectStreamUrl(itemId, {
                 mediaSourceId: options.mediaSourceId,
@@ -337,7 +371,7 @@ export function getPlaybackStreamUrl(
         };
     }
 
-    if (playMethod === 'Transcode' && options.transcodingUrl && creds) {
+    if (options.transcodingUrl && creds) {
         const base = creds.server.replace(/\/+$/, '');
         const path = options.transcodingUrl.startsWith('/')
             ? options.transcodingUrl
@@ -348,7 +382,7 @@ export function getPlaybackStreamUrl(
             url = `${url}${separator}StartTimeTicks=${options.startTimeTicks}`;
         }
         return {
-            url,
+            url: appendApiKey(url),
             mimeType: 'application/x-mpegURL',
         };
     }

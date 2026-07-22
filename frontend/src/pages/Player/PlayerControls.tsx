@@ -14,6 +14,8 @@ import {
     Info,
     Minimize,
     SkipBack,
+    ListVideo,
+    Tv,
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Link, useNavigate, useSearchParams } from 'react-router';
@@ -28,6 +30,7 @@ import { Slider } from '../../components/ui/slider';
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuRadioGroup,
     DropdownMenuRadioItem,
@@ -44,6 +47,7 @@ import { useReportPlaybackProgress } from '@/hooks/api/usePlaybackProgress';
 import { getRuntimePlaybackStats, type RuntimePlaybackStats } from '@/utils/playbackStats';
 import { useSession } from '@/hooks/api/useSession';
 import { useConfig } from '@/hooks/api/useConfig';
+import { useEpisodes } from '@/hooks/api/useEpisodes';
 import {
     removeLastSubtitleLanguage,
     setLastAudioLanguage,
@@ -172,6 +176,7 @@ const PlayerControls = ({
     const [container, setContainer] = useState<HTMLElement | null>(null);
     const { data: session } = useSession(item.Id, showStats);
     const { config } = useConfig();
+    const { data: seasonEpisodes } = useEpisodes(item.Type === 'Episode' ? item.SeasonId : null);
 
     const [isProgressBarFocused, setIsProgressBarFocused] = useState(false);
     const [isScrubbing, setIsScrubbing] = useState(false);
@@ -910,6 +915,22 @@ const PlayerControls = ({
                         }`}
                         style={{ width: `${progressPercentage}%` }}
                     />
+                    {/* Chapter Tick Markers */}
+                    {item.Chapters && displayDuration > 0 && item.Chapters.map((chapter, index) => {
+                        const startSec = ticksToSeconds(chapter.StartPositionTicks || 0);
+                        const pct = (startSec / displayDuration) * 100;
+                        if (pct <= 0 || pct >= 99.5) return null;
+                        return (
+                            <div
+                                key={`chapter-tick-${index}`}
+                                className={`absolute rounded-full pointer-events-none z-18 transition-all bg-black/90 ${
+                                    (isProgressBarFocused || isScrubbing) ? "top-0.5 h-2 w-[3px]" : "top-1 h-1 w-[2px]"
+                                }`}
+                                style={{ left: `${pct}%` }}
+                                title={chapter.Name || undefined}
+                            />
+                        );
+                    })}
                     {/* Circle Playhead Handle */}
                     {(isProgressBarFocused || isScrubbing) && (
                         <div
@@ -923,17 +944,16 @@ const PlayerControls = ({
                     )}
                     {/* Hover preview */}
                     {hoverTime !== null &&
-                        item.Trickplay &&
                         (() => {
-                            const trickplayInfo = getPrimaryTrickplayInfo(item.Trickplay);
-                            if (!trickplayInfo || hoverTime === null) return null;
+                            const activeChapter = item.Chapters?.slice().reverse().find((c) => {
+                                const startSec = ticksToSeconds(c.StartPositionTicks || 0);
+                                return startSec <= hoverTime;
+                            });
 
-                            const { imageIndex, x, y, width, height } = getTrickplayTile(
-                                hoverTime,
-                                trickplayInfo
-                            );
+                            const trickplayInfo = item.Trickplay ? getPrimaryTrickplayInfo(item.Trickplay) : null;
+                            const tile = trickplayInfo ? getTrickplayTile(hoverTime, trickplayInfo) : null;
 
-                            const previewWidth = width || 320;
+                            const previewWidth = tile?.width || 320;
                             const halfWidth = previewWidth / 2;
                             const clampedPosition = Math.max(
                                 halfWidth,
@@ -942,33 +962,40 @@ const PlayerControls = ({
 
                             return (
                                 <div
-                                    className="absolute bottom-4 -translate-x-1/2 text-white pointer-events-none z-40 flex flex-col items-center"
+                                    className="absolute bottom-4 -translate-x-1/2 text-white pointer-events-none z-40 flex flex-col items-center gap-1"
                                     style={{ left: `${clampedPosition}px` }}
                                 >
-                                    <div
-                                        className="relative overflow-hidden rounded-md mb-1"
-                                        style={{
-                                            width: width,
-                                            height: height,
-                                        }}
-                                    >
-                                        <img
-                                            src={getTrickplayImageUrl(
-                                                item.Id!,
-                                                width || 320,
-                                                imageIndex
-                                            )}
+                                    {tile && (
+                                        <div
+                                            className="relative overflow-hidden rounded-md"
                                             style={{
-                                                position: 'absolute',
-                                                left: -x * (width || 0),
-                                                top: -y * (height || 0),
-                                                maxWidth: 'none',
+                                                width: tile.width,
+                                                height: tile.height,
                                             }}
-                                            draggable={false}
-                                        />
-                                    </div>
-                                    <div className="text-center bg-black/90 p-1 px-2 rounded-md w-min">
-                                        {formatPlayTime(hoverTime)}
+                                        >
+                                            <img
+                                                src={getTrickplayImageUrl(
+                                                    item.Id!,
+                                                    tile.width || 320,
+                                                    tile.imageIndex
+                                                )}
+                                                style={{
+                                                    position: 'absolute',
+                                                    left: -tile.x * (tile.width || 0),
+                                                    top: -tile.y * (tile.height || 0),
+                                                    maxWidth: 'none',
+                                                }}
+                                                draggable={false}
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="text-center bg-black/90 backdrop-blur-xs p-1.5 px-3 rounded-md w-max border border-white/10 shadow-lg flex flex-col items-center gap-0.5">
+                                        {activeChapter?.Name && (
+                                            <span className="font-semibold text-brand text-xs max-w-[220px] truncate">
+                                                {activeChapter.Name}
+                                            </span>
+                                        )}
+                                        <span className="text-xs font-mono">{formatPlayTime(hoverTime)}</span>
                                     </div>
                                 </div>
                             );
@@ -1027,6 +1054,123 @@ const PlayerControls = ({
                         >
                             <Info />
                         </Button>
+                        {seasonEpisodes && seasonEpisodes.length > 0 && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant={'ghost'}
+                                        size={'icon-lg'}
+                                        className="cursor-pointer"
+                                        title="Episodes"
+                                    >
+                                        <Tv />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent container={container} align="start" className="max-h-[80vh] overflow-y-auto w-80 sm:w-96 p-2 space-y-2 bg-black/90 backdrop-blur-xl border border-white/10 shadow-2xl">
+                                    <DropdownMenuLabel className="text-sm font-bold flex items-center justify-between px-2">
+                                        <span>Season Episodes</span>
+                                        <Badge variant="outline" className="font-mono text-[10px]">
+                                            {seasonEpisodes.length} Episodes
+                                        </Badge>
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator className="bg-white/10" />
+                                    <div className="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1">
+                                        {seasonEpisodes.map((ep) => {
+                                            const isCurrent = ep.Id === item.Id;
+                                            return (
+                                                <DropdownMenuItem
+                                                    key={ep.Id}
+                                                    onClick={() => {
+                                                        if (isCurrent || !ep.Id) return;
+                                                        player?.pause();
+                                                        markItemAsCompleted(item.Id);
+                                                        navigate(buildPlayerUrl(ep.Id, backUrl ?? undefined));
+                                                    }}
+                                                    className={`cursor-pointer p-2 rounded-lg flex gap-3 transition-all border ${
+                                                        isCurrent
+                                                            ? 'bg-brand/20 border-brand/50 text-white font-semibold'
+                                                            : 'bg-white/5 border-transparent hover:bg-white/15 text-gray-200'
+                                                    }`}
+                                                >
+                                                    {/* Episode Thumbnail */}
+                                                    <div className="w-24 h-14 shrink-0 rounded-md overflow-hidden bg-black/60 relative">
+                                                        <img
+                                                            src={getPrimaryImageUrl(ep.Id!, { width: 180, height: 100 })}
+                                                            alt={ep.Name || ''}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => {
+                                                                (e.target as HTMLElement).style.display = 'none';
+                                                            }}
+                                                        />
+                                                        {isCurrent && (
+                                                            <div className="absolute inset-0 bg-brand/40 flex items-center justify-center">
+                                                                <Play className="w-4 h-4 fill-current text-white" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Episode Info */}
+                                                    <div className="flex-1 min-w-0 space-y-0.5">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="font-bold text-xs truncate">
+                                                                E{ep.IndexNumber} • {ep.Name}
+                                                            </span>
+                                                            {ep.RunTimeTicks && (
+                                                                <span className="text-[10px] font-mono text-gray-400 shrink-0 ml-1">
+                                                                    {ticksToReadableTime(ep.RunTimeTicks)}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {ep.Overview && (
+                                                            <p className="text-[11px] text-gray-400 line-clamp-2 leading-tight font-normal">
+                                                                {ep.Overview}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </DropdownMenuItem>
+                                            );
+                                        })}
+                                    </div>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                        {item.Chapters && item.Chapters.length > 0 && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant={'ghost'}
+                                        size={'icon-lg'}
+                                        className="cursor-pointer"
+                                        title="Chapters"
+                                    >
+                                        <ListVideo />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent container={container} className="max-h-72 overflow-y-auto w-64">
+                                    <DropdownMenuLabel>Chapters</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {item.Chapters.map((chapter, index) => {
+                                        const startSec = ticksToSeconds(chapter.StartPositionTicks || 0);
+                                        const isCurrent =
+                                            displayCurrentTime >= startSec &&
+                                            (index === item.Chapters!.length - 1 ||
+                                                displayCurrentTime < ticksToSeconds(item.Chapters![index + 1].StartPositionTicks || 0));
+                                        return (
+                                            <DropdownMenuItem
+                                                key={index}
+                                                onClick={() => player?.currentTime(startSec - timeOffset)}
+                                                className={`cursor-pointer flex items-center justify-between text-xs py-2 ${
+                                                    isCurrent ? 'bg-white/15 font-semibold text-brand' : ''
+                                                }`}
+                                            >
+                                                <span className="truncate mr-2">{chapter.Name || `Chapter ${index + 1}`}</span>
+                                                <span className="font-mono text-muted-foreground shrink-0">{formatPlayTime(startSec)}</span>
+                                            </DropdownMenuItem>
+                                        );
+                                    })}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
                         {subtitleStreams.length > 0 && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -1207,18 +1351,31 @@ const PlayerControls = ({
                     <div className="flex-1 flex flex-col lg:flex-row items-center justify-between gap-12 w-full max-w-7xl mx-auto my-auto select-none">
                         {/* Left Info Panel */}
                         <div className="flex-1 flex flex-col lg:justify-between lg:self-stretch text-left max-w-2xl py-2" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex flex-col gap-6 lg:my-auto">
-                                {/* Movie Logo / Title */}
-                                {failedLogo || !item.Id ? (
-                                    <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-white">{item.Name}</h1>
-                                ) : (
-                                    <img
-                                        src={getLogoUrl(item.Id)}
-                                        alt={item.Name || ''}
-                                        className="h-20 sm:h-32 object-contain object-left max-w-[85%]"
-                                        onError={() => setFailedLogo(true)}
-                                    />
-                                )}
+                            <div className="flex flex-col gap-4 lg:my-auto">
+                                {/* Movie / TV Series Logo or Name */}
+                                {(() => {
+                                    const logoTargetId = (item.Type === 'Episode' ? item.SeriesId : item.Id) || item.Id;
+                                    const titleText = item.Type === 'Episode' ? (item.SeriesName || item.Name) : item.Name;
+                                    return (
+                                        <>
+                                            {failedLogo || !logoTargetId ? (
+                                                <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-white">{titleText}</h1>
+                                            ) : (
+                                                <img
+                                                    src={getLogoUrl(logoTargetId)}
+                                                    alt={titleText || ''}
+                                                    className="h-20 sm:h-32 object-contain object-left max-w-[85%]"
+                                                    onError={() => setFailedLogo(true)}
+                                                />
+                                            )}
+                                            {item.Type === 'Episode' && (
+                                                <h2 className="text-lg sm:text-2xl font-bold text-brand tracking-wide -mt-1">
+                                                    S{item.ParentIndexNumber}E{item.IndexNumber} • {item.Name}
+                                                </h2>
+                                            )}
+                                        </>
+                                    );
+                                })()}
 
                                 {/* Info Badges Row */}
                                 <div className="flex flex-wrap items-center gap-4 text-sm sm:text-base font-medium text-white/80">
@@ -1279,7 +1436,7 @@ const PlayerControls = ({
                                         {/* Disc art: the actual disc image or fallback */}
                                         {!discImageFailed ? (
                                             <img
-                                                src={getItemImageUrl(item.Id, 'Disc', 0)}
+                                                src={getItemImageUrl((item.Type === 'Episode' ? item.SeriesId : item.Id) || item.Id, 'Disc', 0)}
                                                 alt=""
                                                 className="w-full h-full object-contain z-10"
                                                 draggable={false}
@@ -1298,18 +1455,18 @@ const PlayerControls = ({
                                                     <span className="text-[4px] text-yellow-400/80 font-bold tracking-widest uppercase mt-0.5">PELAGICA PICTURES</span>
                                                 </div>
 
-                                                {/* Movie Logo printed on fallback disc */}
+                                                {/* Movie / Series Logo printed on fallback disc */}
                                                 <div className="absolute right-6 top-1/2 -translate-y-1/2 w-32 sm:w-40 lg:w-44 z-25 pointer-events-none select-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] rotate-[6deg] flex justify-center">
                                                     {!failedLogo ? (
                                                         <img
-                                                            src={getLogoUrl(item.Id)}
+                                                            src={getLogoUrl((item.Type === 'Episode' ? item.SeriesId : item.Id) || item.Id)}
                                                             alt=""
                                                             className="w-full object-contain max-h-14 opacity-90 filter brightness-110"
                                                             onError={() => setFailedLogo(true)}
                                                         />
                                                     ) : (
                                                         <span className="text-white text-xs sm:text-sm font-bold tracking-tight uppercase text-center line-clamp-2">
-                                                            {item.Name}
+                                                            {item.Type === 'Episode' ? item.SeriesName || item.Name : item.Name}
                                                         </span>
                                                     )}
                                                 </div>

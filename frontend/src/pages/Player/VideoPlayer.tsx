@@ -99,6 +99,7 @@ const VideoPlayer = ({
     isAudioSwitchRef,
     subtitleTrackIndex,
     subtitleDelay,
+    onError,
 }: VideoPlayerProps) => {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const playerRef = useRef<VideoJsPlayer | null>(null);
