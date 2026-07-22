@@ -7,7 +7,7 @@ import { Link, useNavigate } from 'react-router';
 import { ticksToReadableMusicTime, ticksToReadableTime } from '@/utils/timeConversion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Disc, Play, Pause, ImageOff, Music, Clock, Calendar } from 'lucide-react';
+import { Disc, Play, Pause, Music, Clock, Calendar } from 'lucide-react';
 import FavoriteButton from '@/components/FavoriteButton';
 import { useAlbumTracks } from '@/hooks/api/useAlbumTracks';
 import { useMusicPlayback } from '@/hooks/useMusicPlayback';
@@ -25,7 +25,7 @@ const AudioPage = ({ item }: AudioPageProps) => {
     const { t } = useTranslation('item');
     const navigate = useNavigate();
     const { setBackground } = usePageBackground();
-    const { loadQueue, currentTrack, isPlaying, togglePlay } = useMusicPlayback();
+    const { loadQueue, currentTrack, isPlaying, togglePlayPause } = useMusicPlayback();
     const [failedCover, setFailedCover] = useState(false);
 
     const albumId = item.AlbumId || item.ParentId;
@@ -60,15 +60,15 @@ const AudioPage = ({ item }: AudioPageProps) => {
 
     const handlePlaySong = () => {
         if (isCurrentTrack) {
-            togglePlay();
+            togglePlayPause();
             return;
         }
 
         const queue = (albumTracks && albumTracks.length > 0)
-            ? albumTracks.map((track) => ({
-                  id: track.Id || '',
-                  title: track.Name || '',
-                  artist: track.ArtistItems?.[0]?.Name || artistName,
+            ? albumTracks.map((t) => ({
+                  id: t.Id || '',
+                  title: t.Name || '',
+                  artist: t.ArtistItems?.[0]?.Name || artistName,
                   albumId: albumId || '',
                   albumName: item.Album || '',
               }))
@@ -84,7 +84,7 @@ const AudioPage = ({ item }: AudioPageProps) => {
         loadQueue(queue, index !== -1 ? index : 0, true);
     };
 
-    const handlePlayTrackInQueue = (track: BaseItemDto, trackIndex: number) => {
+    const handlePlayTrackInQueue = (trackIndex: number) => {
         if (albumTracks && albumTracks.length > 0) {
             const queue = albumTracks.map((t) => ({
                 id: t.Id || '',
@@ -222,7 +222,7 @@ const AudioPage = ({ item }: AudioPageProps) => {
                                 </Button>
                             )}
 
-                            <FavoriteButton itemId={item.Id!} />
+                            <FavoriteButton item={item} />
                             <ItemAdminButton item={item} />
                         </div>
                     </div>
@@ -251,7 +251,7 @@ const AudioPage = ({ item }: AudioPageProps) => {
                                     return (
                                         <div
                                             key={track.Id}
-                                            onClick={() => handlePlayTrackInQueue(track, idx)}
+                                            onClick={() => handlePlayTrackInQueue(idx)}
                                             className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors group ${
                                                 isThisSong
                                                     ? 'bg-brand/15 text-brand font-medium'
