@@ -7,7 +7,7 @@ import { usePlaybackStop } from '@/hooks/api/usePlaybackStop';
 import { useParams } from 'react-router';
 import VideoPlayer, { type SubtitleTrack } from '@/pages/Player/VideoPlayer';
 import PlayerControls from '@/pages/Player/PlayerControls';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getPrimaryImageUrl, getSubtitleUrl, getPlaybackStreamUrl } from '@/utils/jellyfinUrls';
 import { usePlaybackInfo } from '@/hooks/api/usePlaybackInfo';
 import { useMediaSegments } from '@/hooks/api/useMediaSegments';
@@ -130,6 +130,13 @@ const PlayerPage = () => {
 
     const [forceTranscode, setForceTranscode] = useState(false);
 
+    const handleVideoError = useCallback(() => {
+        if (!forceTranscode) {
+            console.warn('[PlayerPage] Direct playback failed, falling back to transcode stream...');
+            setForceTranscode(true);
+        }
+    }, [forceTranscode]);
+
     const isLiveTv = useMemo(() => {
         return (
             item?.Type === 'TvChannel' ||
@@ -147,10 +154,13 @@ const PlayerPage = () => {
 
     const startTicks = isLiveTv ? 0 : item?.UserData?.PlaybackPositionTicks || 0;
 
+    const effectivePlayMethod = useMemo(() => {
+        if (!playbackInfo) return 'DirectPlay';
+        return forceTranscode ? 'Transcode' : playbackInfo.playMethod;
+    }, [forceTranscode, playbackInfo]);
+
     const streamResult = useMemo(() => {
         if (!itemId || !playbackInfo) return null;
-
-        const effectivePlayMethod = forceTranscode ? 'Transcode' : playbackInfo.playMethod;
 
         return getPlaybackStreamUrl(itemId, effectivePlayMethod, {
             playSessionId: playbackInfo.playSessionId,
@@ -160,10 +170,12 @@ const PlayerPage = () => {
             transcodingUrl: playbackInfo.mediaSource.TranscodingUrl,
             directStreamUrl: (playbackInfo.mediaSource as any).DirectStreamUrl || undefined,
             liveStreamId: playbackInfo.mediaSource.LiveStreamId || undefined,
-            startTimeTicks: isLiveTv ? undefined : startTicks,
+            startTimeTicks: undefined,
             isLiveTv,
         });
-    }, [itemId, playbackInfo, audioTrackIndex, forceTranscode, isLiveTv, startTicks]);
+    }, [itemId, playbackInfo, effectivePlayMethod, audioTrackIndex, isLiveTv]);
+
+    const timeOffset = 0;
 
     // Close live stream session on teardown
     useEffect(() => {
@@ -232,13 +244,6 @@ const PlayerPage = () => {
         if (!item?.Id) return undefined;
         return getPrimaryImageUrl(item?.Id);
     }, [item?.Id]);
-
-    const timeOffset = useMemo(() => {
-        if (playbackInfo?.playMethod === 'Transcode' && startTicks > 0) {
-            return startTicks / 10_000_000;
-        }
-        return 0;
-    }, [playbackInfo, startTicks]);
 
     const handleToggleFullscreen = () => {
         if (!containerRef.current) return;
@@ -433,12 +438,7 @@ const PlayerPage = () => {
                 isAudioSwitchRef={isAudioSwitchRef}
                 subtitleTrackIndex={subtitleTrackIndex}
                 subtitleDelay={subtitleDelay}
-                onError={() => {
-                    if (!forceTranscode) {
-                        console.warn('[PlayerPage] Direct playback failed, falling back to transcode stream...');
-                        setForceTranscode(true);
-                    }
-                }}
+                onError={handleVideoError}
             />
             <PlayerControls
                 item={item}

@@ -174,6 +174,13 @@ const VideoPlayer = ({
         };
     }, [subtitles]);
 
+    const onErrorRef = useRef(onError);
+    useEffect(() => {
+        onErrorRef.current = onError;
+    }, [onError]);
+
+    const hasTriggeredZeroDimRef = useRef(false);
+
     useEffect(() => {
         if (!videoRef.current) return;
 
@@ -208,7 +215,26 @@ const VideoPlayer = ({
             setIsBuffering(false);
             const err = player.error();
             console.warn('[VideoPlayer] Playback error encountered:', err || e);
-            onError?.(err || e);
+            onErrorRef.current?.(err || e);
+        };
+
+        const checkZeroDimensionVideo = () => {
+            if (!player || player.isDisposed?.()) return;
+            try {
+                const videoEl = player.el()?.querySelector('video') as HTMLVideoElement | null;
+                if (
+                    videoEl &&
+                    !player.paused() &&
+                    (player.currentTime() || 0) >= 3.0 &&
+                    (player.readyState?.() ?? 0) >= 3
+                ) {
+                    if (!hasTriggeredZeroDimRef.current && (videoEl.videoWidth === 0 || videoEl.videoHeight === 0)) {
+                        hasTriggeredZeroDimRef.current = true;
+                        console.warn('[VideoPlayer] Video playing with 0 dimensions (black screen), falling back to transcode...');
+                        onErrorRef.current?.({ message: 'Zero video dimensions during playback' });
+                    }
+                }
+            } catch {}
         };
 
         player.on('waiting', handleWaiting);
@@ -219,6 +245,7 @@ const VideoPlayer = ({
         player.on('canplay', handleCanPlay);
         player.on('pause', handlePause);
         player.on('error', handleError);
+        player.on('timeupdate', checkZeroDimensionVideo);
 
         player.ready(() => {
             registerVhsHook();
@@ -237,6 +264,7 @@ const VideoPlayer = ({
                 p.off('canplay', handleCanPlay);
                 p.off('pause', handlePause);
                 p.off('error', handleError);
+                p.off('timeupdate', checkZeroDimensionVideo);
                 p.dispose();
                 playerRef.current = null;
                 setIsPlayerInitialized(false);
@@ -253,27 +281,30 @@ const VideoPlayer = ({
 
         if (loadedSrcRef.current === src) return;
         loadedSrcRef.current = src;
+        hasTriggeredZeroDimRef.current = false;
 
-        const isTranscodedOffset = srcType === 'application/x-mpegURL' && src.includes('StartTimeTicks=');
         let seekTo: number | null = null;
 
         if (isAudioSwitchRef.current) {
             seekTo = player.currentTime() || null;
             isAudioSwitchRef.current = false;
-        } else if (!hasSeekedRef.current && initialStartTicksRef.current > 0 && !isTranscodedOffset) {
+        } else if (!hasSeekedRef.current && initialStartTicksRef.current > 0) {
             seekTo = initialStartTicksRef.current / 10_000_000;
             hasSeekedRef.current = true;
         } else if (!hasSeekedRef.current) {
             hasSeekedRef.current = true;
         }
 
-        player.pause();
-        player.src({ src, type: srcType });
-        player.load();
-
+        let hasApplied = false;
         const applySeekAndPlay = () => {
+            if (hasApplied) return;
+            hasApplied = true;
             if (seekTo !== null && seekTo > 0) {
-                player.currentTime(seekTo);
+                try {
+                    player.currentTime(seekTo);
+                } catch (e) {
+                    console.warn('[VideoPlayer] Seek error:', e);
+                }
             }
             player.play()?.catch((err) => {
                 console.error('[VideoPlayer] Play error:', err);
@@ -281,10 +312,16 @@ const VideoPlayer = ({
             });
         };
 
+        player.one('loadedmetadata', applySeekAndPlay);
+        player.one('canplay', applySeekAndPlay);
+        player.one('playing', applySeekAndPlay);
+
+        player.pause();
+        player.src({ src, type: srcType });
+        player.load();
+
         if (player.readyState() >= 1) {
             applySeekAndPlay();
-        } else {
-            player.one('loadedmetadata', applySeekAndPlay);
         }
     }, [src, srcType, isAudioSwitchRef, isPlayerInitialized]);
 

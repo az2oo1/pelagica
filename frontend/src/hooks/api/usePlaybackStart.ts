@@ -20,13 +20,17 @@ export function usePlaybackStart() {
             const api = getApi();
             const playstateApi = getPlaystateApi(api);
 
+            const startInfo: any = {
+                ItemId: itemId,
+                PositionTicks: positionTicks,
+            };
+
+            if (playSessionId && playSessionId.trim().length > 0) {
+                startInfo.PlaySessionId = playSessionId;
+            }
+
             await playstateApi.reportPlaybackStart({
-                playbackStartInfo: {
-                    ItemId: itemId,
-                    // SessionId: sessionId,
-                    PlaySessionId: playSessionId,
-                    PositionTicks: positionTicks,
-                },
+                playbackStartInfo: startInfo,
             });
 
             // console.log(

@@ -42,7 +42,7 @@ function buildDeviceProfile() {
         {
             Container: 'ts',
             Type: 'Video' as const,
-            VideoCodec: videoCodecs.join(','),
+            VideoCodec: 'h264',
             AudioCodec: 'aac,mp3',
             Protocol: 'hls' as const,
             Context: 'Streaming' as const,
@@ -53,7 +53,7 @@ function buildDeviceProfile() {
         {
             Container: 'mp4',
             Type: 'Video' as const,
-            VideoCodec: videoCodecs.join(','),
+            VideoCodec: 'h264',
             AudioCodec: 'aac',
             Protocol: 'hls' as const,
             Context: 'Streaming' as const,

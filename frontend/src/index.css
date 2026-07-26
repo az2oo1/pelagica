@@ -212,6 +212,18 @@ body {
 }
 
 /* Custom Subtitle Styling & Positioning */
+.video-js {
+    width: 100% !important;
+    height: 100% !important;
+    background-color: #000 !important;
+}
+
+.video-js .vjs-tech {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+}
+
 .video-js .vjs-text-track-display {
     font-size: var(--subtitle-size, 100%) !important;
     bottom: 3% !important;

@@ -1,5 +1,4 @@
 import { getAccessToken, getServerUrl, getDeviceId } from './localstorageCredentials';
-import { getSupportedVideoCodecs } from './videoCodecDetection';
 import type { PlayMethod } from '@/hooks/api/usePlaybackInfo';
 interface Credentials {
     server: string;
@@ -187,12 +186,12 @@ export function getVideoStreamUrl(
         url.searchParams.append('MediaSourceId', options.mediaSourceId || itemId);
         url.searchParams.append('ApiKey', token);
         url.searchParams.append('DeviceId', getDeviceId());
-        url.searchParams.append('VideoCodec', getSupportedVideoCodecs());
+        url.searchParams.append('VideoCodec', 'h264');
         url.searchParams.append('AudioCodec', 'aac');
         url.searchParams.append('SegmentContainer', 'mp4');
         url.searchParams.append('MinSegments', '2');
         url.searchParams.append('BreakOnNonKeyFrames', 'true');
-        url.searchParams.append('RequireAvc', 'false');
+        url.searchParams.append('RequireAvc', 'true');
 
         url.searchParams.append('MaxWidth', '3840');
         url.searchParams.append('MaxHeight', '2160');
@@ -370,9 +369,13 @@ export function getPlaybackStreamUrl(
             ? options.transcodingUrl
             : `/${options.transcodingUrl}`;
         let url = `${base}${path}`;
-        if (options.startTimeTicks !== undefined && options.startTimeTicks > 0) {
-            const separator = url.includes('?') ? '&' : '?';
-            url = `${url}${separator}StartTimeTicks=${options.startTimeTicks}`;
+        if (options.startTimeTicks !== undefined) {
+            if (/startTimeTicks=/i.test(url)) {
+                url = url.replace(/startTimeTicks=[^&]*/i, `StartTimeTicks=${options.startTimeTicks}`);
+            } else if (options.startTimeTicks > 0) {
+                const separator = url.includes('?') ? '&' : '?';
+                url = `${url}${separator}StartTimeTicks=${options.startTimeTicks}`;
+            }
         }
         return {
             url: appendApiKey(url),

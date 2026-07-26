@@ -11,6 +11,11 @@ let cachedCodecSupport: CodecSupport | null = null;
  * Check if a specific MIME type is supported by the browser
  */
 function canPlayType(mimeType: string): boolean {
+    if (typeof MediaSource !== 'undefined' && typeof MediaSource.isTypeSupported === 'function') {
+        if (!MediaSource.isTypeSupported(mimeType)) {
+            return false;
+        }
+    }
     const video = document.createElement('video');
     const support = video.canPlayType(mimeType);
     return support === 'probably' || support === 'maybe';
@@ -54,12 +59,12 @@ export function getSupportedVideoCodecs(): string {
     const support = detectSupportedCodecs();
     const codecs: string[] = [];
 
+    if (support.h264) codecs.push('h264');
+    if (support.vp9) codecs.push('vp9');
     if (support.av1) codecs.push('av1');
     if (support.hevc) codecs.push('hevc');
-    if (support.vp9) codecs.push('vp9');
-    if (support.h264) codecs.push('h264');
 
-    // Fallbacl to h264 if no codecs detected
+    // Fallback to h264 if no codecs detected
     if (codecs.length === 0) codecs.push('h264');
 
     return codecs.join(',');

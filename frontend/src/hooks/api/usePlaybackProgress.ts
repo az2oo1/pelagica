@@ -30,16 +30,20 @@ export function useReportPlaybackProgress() {
             const api = getApi();
             const playstateApi = getPlaystateApi(api);
 
+            const progressInfo: any = {
+                ItemId: itemId,
+                PositionTicks: positionTicks,
+                IsPaused: isPaused,
+                VolumeLevel: volumeLevel,
+                IsMuted: isMuted,
+            };
+
+            if (playSessionId && playSessionId.trim().length > 0) {
+                progressInfo.PlaySessionId = playSessionId;
+            }
+
             await playstateApi.reportPlaybackProgress({
-                playbackProgressInfo: {
-                    ItemId: itemId,
-                    // SessionId: sessionId,
-                    PlaySessionId: playSessionId,
-                    PositionTicks: positionTicks,
-                    IsPaused: isPaused,
-                    VolumeLevel: volumeLevel,
-                    IsMuted: isMuted,
-                },
+                playbackProgressInfo: progressInfo,
             });
 
             // console.log(
