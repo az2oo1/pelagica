@@ -145,6 +145,8 @@ const PlayerPage = () => {
         );
     }, [item, playbackInfo]);
 
+    const startTicks = isLiveTv ? 0 : item?.UserData?.PlaybackPositionTicks || 0;
+
     const streamResult = useMemo(() => {
         if (!itemId || !playbackInfo) return null;
 
@@ -158,10 +160,10 @@ const PlayerPage = () => {
             transcodingUrl: playbackInfo.mediaSource.TranscodingUrl,
             directStreamUrl: (playbackInfo.mediaSource as any).DirectStreamUrl || undefined,
             liveStreamId: playbackInfo.mediaSource.LiveStreamId || undefined,
-            startTimeTicks: isLiveTv ? undefined : undefined,
+            startTimeTicks: isLiveTv ? undefined : startTicks,
             isLiveTv,
         });
-    }, [itemId, playbackInfo, audioTrackIndex, forceTranscode, isLiveTv]);
+    }, [itemId, playbackInfo, audioTrackIndex, forceTranscode, isLiveTv, startTicks]);
 
     // Close live stream session on teardown
     useEffect(() => {
@@ -231,8 +233,6 @@ const PlayerPage = () => {
         return getPrimaryImageUrl(item?.Id);
     }, [item?.Id]);
 
-    const startTicks = isLiveTv ? 0 : item?.UserData?.PlaybackPositionTicks || 0;
-
     const timeOffset = useMemo(() => {
         if (playbackInfo?.playMethod === 'Transcode' && startTicks > 0) {
             return startTicks / 10_000_000;
@@ -266,6 +266,17 @@ const PlayerPage = () => {
         // Report playback start
         startPlayback({ itemId, positionTicks: startTicks, playSessionId });
 
+        const updatePosition = () => {
+            if (!player || player.isDisposed?.()) return;
+            try {
+                const currentTime = player.currentTime() || 0;
+                const actualTime = currentTime + timeOffset;
+                if (actualTime > 0) {
+                    lastPositionRef.current = Math.floor(actualTime * 10000000);
+                }
+            } catch {}
+        };
+
         const reportPlayerProgress = () => {
             if (!player || player.isDisposed?.()) return;
 
@@ -293,6 +304,8 @@ const PlayerPage = () => {
             }
         };
 
+        player.on('timeupdate', updatePosition);
+
         // Report playback progress every X seconds
         reportPlayerProgress();
         progressReportingIntervalRef.current = setInterval(
@@ -301,6 +314,9 @@ const PlayerPage = () => {
         );
 
         return () => {
+            if (!player.isDisposed?.()) {
+                player.off('timeupdate', updatePosition);
+            }
             // Clear interval first
             if (progressReportingIntervalRef.current) {
                 clearInterval(progressReportingIntervalRef.current);
@@ -310,7 +326,7 @@ const PlayerPage = () => {
             stopPlayback({ itemId, positionTicks: lastPositionRef.current });
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [itemId, player, reportProgress, startPlayback, startTicks, stopPlayback, clearPlayback]);
+    }, [itemId, player, reportProgress, startPlayback, startTicks, stopPlayback, clearPlayback, timeOffset]);
 
     useEffect(() => {
         lastPositionRef.current = startTicks;

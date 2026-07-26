@@ -254,7 +254,7 @@ const VideoPlayer = ({
         if (loadedSrcRef.current === src) return;
         loadedSrcRef.current = src;
 
-        const isTranscodedOffset = src.includes('StartTimeTicks=');
+        const isTranscodedOffset = srcType === 'application/x-mpegURL' && src.includes('StartTimeTicks=');
         let seekTo: number | null = null;
 
         if (isAudioSwitchRef.current) {
