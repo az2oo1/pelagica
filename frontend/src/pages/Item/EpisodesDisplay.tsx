@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { cn } from '@/lib/utils';
 import { buildPlayerUrl } from '@/utils/playerUrl';
+import ItemContextMenu from '@/components/ItemContextMenu';
 
 /**
  * Inner image block with blur-in loading state — mirrors the BaseContinueRow card model.
@@ -76,71 +77,73 @@ const EpisodeComponent = memo(
                   : 0;
 
         return (
-            <Link to={`/item/${episode.Id}`} key={episode.Id} className={'group block outline-none focus:outline-none focus-visible:outline-none ' + (className ?? '')}>
-                <div className="relative w-full aspect-video rounded-md overflow-hidden">
-                    {imageError ? (
-                        <div className="w-full h-full bg-muted flex items-center justify-center rounded-md">
-                            <ImageOff className="w-12 h-12 text-muted-foreground" />
-                            <div className="absolute inset-0 rounded-md pointer-events-none poster-card-outline z-20" />
-                        </div>
-                    ) : (
-                        <EpisodeCardImage episode={episode} onError={() => setImageError(true)} />
-                    )}
+            <ItemContextMenu item={episode}>
+                <Link to={`/item/${episode.Id}`} key={episode.Id} className={'group block outline-none focus:outline-none focus-visible:outline-none ' + (className ?? '')}>
+                    <div className="relative w-full aspect-video rounded-md overflow-hidden">
+                        {imageError ? (
+                            <div className="w-full h-full bg-muted flex items-center justify-center rounded-md">
+                                <ImageOff className="w-12 h-12 text-muted-foreground" />
+                                <div className="absolute inset-0 rounded-md pointer-events-none poster-card-outline z-20" />
+                            </div>
+                        ) : (
+                            <EpisodeCardImage episode={episode} onError={() => setImageError(true)} />
+                        )}
 
-                    {/* Progress bar */}
-                    {progress > 0 && (
-                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/60 rounded-b-md overflow-hidden z-25">
+                        {/* Progress bar */}
+                        {progress > 0 && (
+                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/60 rounded-b-md overflow-hidden z-25">
+                                <div
+                                    style={{ width: `${progress}%` }}
+                                    className="h-full bg-white/70 transition-width"
+                                />
+                            </div>
+                        )}
+
+                        {/* Hover play button */}
+                        <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 group-focus:opacity-100 transition-opacity duration-150 z-30">
                             <div
-                                style={{ width: `${progress}%` }}
-                                className="h-full bg-white/70 transition-width"
-                            />
-                        </div>
-                    )}
-
-                    {/* Hover play button */}
-                    <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 group-focus:opacity-100 transition-opacity duration-150 z-30">
-                        <div
-                            className="flex items-center justify-center backdrop-blur-md bg-black/40 border border-white/15 rounded-full w-9 h-9 cursor-pointer hover:bg-black/60"
-                            role="button"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                navigate(buildPlayerUrl(episode.Id!, backUrl));
-                            }}
-                        >
-                            <Play className="w-4 h-4 text-white fill-white translate-x-px" />
+                                className="flex items-center justify-center backdrop-blur-md bg-black/40 border border-white/15 rounded-full w-9 h-9 cursor-pointer hover:bg-black/60"
+                                role="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    navigate(buildPlayerUrl(episode.Id!, backUrl));
+                                }}
+                            >
+                                <Play className="w-4 h-4 text-white fill-white translate-x-px" />
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <p className="mt-2 text-md line-clamp-1 text-ellipsis break-all">
-                    {episode.Name || t('no_title')}
-                </p>
-                <p className="mt-1 text-sm line-clamp-2 text-ellipsis text-muted-foreground">
-                    {episode.Overview}
-                </p>
-                <div className="flex flex-wrap items-center gap-2 mt-2">
-                    {episode.IndexNumber !== undefined && (
-                        <Badge variant={'outline'}>
-                            S{episode.ParentIndexNumber} E{episode.IndexNumber}
-                        </Badge>
-                    )}
-                    {episode.CommunityRating !== undefined && (
-                        <Badge variant={'outline'}>
-                            <Star size={14} />
-                            {episode.CommunityRating?.toFixed(1)}
-                        </Badge>
-                    )}
-                    {episode.PremiereDate && (
-                        <Badge variant={'outline'}>
-                            {new Date(episode.PremiereDate).toLocaleDateString(undefined, {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                            })}
-                        </Badge>
-                    )}
-                </div>
-            </Link>
+                    <p className="mt-2 text-md line-clamp-1 text-ellipsis break-all">
+                        {episode.Name || t('no_title')}
+                    </p>
+                    <p className="mt-1 text-sm line-clamp-2 text-ellipsis text-muted-foreground">
+                        {episode.Overview}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                        {episode.IndexNumber !== undefined && (
+                            <Badge variant={'outline'}>
+                                S{episode.ParentIndexNumber} E{episode.IndexNumber}
+                            </Badge>
+                        )}
+                        {episode.CommunityRating !== undefined && (
+                            <Badge variant={'outline'}>
+                                <Star size={14} />
+                                {episode.CommunityRating?.toFixed(1)}
+                            </Badge>
+                        )}
+                        {episode.PremiereDate && (
+                            <Badge variant={'outline'}>
+                                {new Date(episode.PremiereDate).toLocaleDateString(undefined, {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                })}
+                            </Badge>
+                        )}
+                    </div>
+                </Link>
+            </ItemContextMenu>
         );
     }
 );
